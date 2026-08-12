@@ -22,9 +22,17 @@ Current implementation includes:
 
 ---
 
-# 🏗 Architecture
 
-> *(Architecture diagram will be added in the next phase.)*
+## 🏗 Architecture
+
+![AWS EKS Terraform Platform Architecture](architecture/aws-eks-architecture.png)
+
+### Architecture Flow
+
+GitHub → GitHub Actions → Terraform → AWS VPC → Amazon EKS → Managed Node Groups → Kubernetes Workloads
+
+The platform is designed to integrate Prometheus and Grafana for Kubernetes monitoring and observability.
+
 
 ---
 
