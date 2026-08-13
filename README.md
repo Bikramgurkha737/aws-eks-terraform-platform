@@ -1,6 +1,6 @@
 # 🚀 AWS EKS Terraform Platform
 
-> Production-oriented AWS EKS platform built with Terraform, Kubernetes, Helm, Prometheus/Grafana, Argo CD GitOps, multi-environment infrastructure, secure remote state, and automated GitHub Actions CI/CD validation.
+> Production-oriented AWS EKS platform built with Terraform, Kubernetes, Helm, Prometheus/Grafana, Argo CD GitOps, multi-environment infrastructure, secure remote state, GitHub OIDC architecture, and automated GitHub Actions CI/CD validation.
 
 ---
 
@@ -8,7 +8,7 @@
 
 This project demonstrates the design and implementation of a modular AWS Kubernetes platform following DevOps and Site Reliability Engineering (SRE) practices.
 
-The platform combines Infrastructure as Code, Kubernetes workload management, Helm packaging, observability, GitOps, security scanning, multi-environment infrastructure, secure Terraform state management, and automated CI/CD validation.
+The platform combines Infrastructure as Code, Kubernetes workload management, Helm packaging, observability, GitOps, security scanning, multi-environment infrastructure, secure Terraform state management, GitHub OIDC authentication architecture, and automated CI/CD validation.
 
 ### Current Implementation
 
@@ -41,9 +41,14 @@ The platform combines Infrastructure as Code, Kubernetes workload management, He
 - Multi-environment Terraform CI matrix
 - Pull Request Terraform validation
 - Credential-safe Terraform PR checks
+- GitHub Actions OIDC Terraform configuration
+- AWS IAM OIDC trust-policy configuration
+- Terraform CI validation for GitHub OIDC configuration
 - TFLint
 - Trivy IaC security scanning
 - Kubeconform schema validation
+
+> **Note:** The GitHub OIDC and AWS IAM configuration is implemented and validated as Terraform code. Deployment to AWS and real AWS-backed Terraform planning remain pending until an AWS account and AWS resources are available.
 
 ---
 
@@ -59,10 +64,14 @@ GitHub
    ▼
 GitHub Actions
    │
+   ├── Terraform CI
+   ├── Terraform PR Validation
+   └── GitHub OIDC Architecture
+   │
    ▼
 Terraform
    │
-   ├── Dev
+   ├── Development
    ├── Staging
    └── Production
    │
@@ -83,7 +92,7 @@ Kubernetes Workloads
    └── Prometheus / Grafana
 ```
 
-The architecture separates infrastructure provisioning, application deployment, GitOps delivery, and observability while providing automated validation through GitHub Actions.
+The architecture separates infrastructure provisioning, application deployment, GitOps delivery, observability, CI/CD validation, and cloud authentication concerns.
 
 ---
 
@@ -109,6 +118,12 @@ aws-eks-terraform-platform/
 │   │   ├── main.tf
 │   │   ├── variables.tf
 │   │   └── outputs.tf
+│   │
+│   ├── github-oidc/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   ├── outputs.tf
+│   │   └── versions.tf
 │   │
 │   ├── environments/
 │   │   ├── dev/
@@ -188,7 +203,7 @@ aws-eks-terraform-platform/
 - Environment-specific configuration
 - Environment-specific VPC networking
 - Independent Terraform state per environment
-- Secure S3 remote state architecture
+- Secure S3 remote-state architecture
 - Native S3 state locking
 - Customer-managed AWS KMS encryption
 - S3 state versioning
@@ -198,6 +213,8 @@ aws-eks-terraform-platform/
 - EKS Managed Node Groups
 - Private EKS API access
 - AWS KMS encryption for Kubernetes secrets
+
+---
 
 ### Multi-Environment Architecture
 
@@ -230,16 +247,18 @@ Each environment provides:
 
 Production uses larger worker nodes and higher scaling capacity than development and staging.
 
-### Terraform Remote State
+---
 
-The project includes a dedicated bootstrap configuration for secure Terraform remote state management.
+## 🗄 Terraform Remote State
 
-Implemented controls include:
+The project includes a dedicated bootstrap configuration for secure Terraform remote-state management.
 
-- Amazon S3 remote state backend
+Implemented architecture includes:
+
+- Amazon S3 remote-state backend
 - Separate state keys for development, staging, and production
 - S3 object versioning
-- Native Terraform state locking with `use_lockfile`
+- Native Terraform state locking using `use_lockfile`
 - Customer-managed AWS KMS encryption
 - AWS KMS key rotation
 - S3 Block Public Access
@@ -255,7 +274,13 @@ eks/prod/terraform.tfstate
 
 This prevents development, staging, and production environments from sharing the same Terraform state.
 
-### Kubernetes
+> Remote-state infrastructure is represented in Terraform code. Actual AWS deployment requires an AWS account.
+
+---
+
+## ☸️ Kubernetes
+
+The Kubernetes layer includes:
 
 - Namespace isolation
 - Deployments
@@ -268,7 +293,11 @@ This prevents development, staging, and production environments from sharing the
 - Readiness probes
 - Liveness probes
 
-### Helm
+---
+
+## 📦 Helm
+
+The application deployment layer includes:
 
 - Reusable application Helm chart
 - Environment-specific values
@@ -276,7 +305,17 @@ This prevents development, staging, and production environments from sharing the
 - Template rendering
 - Kubernetes schema validation
 
-### Observability
+The reusable Helm chart is located at:
+
+```text
+helm/sre-demo/
+```
+
+---
+
+## 📈 Observability
+
+The observability architecture includes:
 
 - Prometheus
 - Grafana
@@ -287,15 +326,139 @@ This prevents development, staging, and production environments from sharing the
 - PrometheusRule
 - Application availability alerts
 
-### GitOps
+### Monitoring Flow
 
-- Argo CD Application
-- Declarative Git-based deployments
+```text
+Kubernetes Workloads
+        │
+        ▼
+  ServiceMonitor
+        │
+        ▼
+    Prometheus
+        │
+   ┌────┴────┐
+   ▼         ▼
+Grafana   Alertmanager
+             │
+             ▼
+       PrometheusRule
+```
+
+Prometheus collects Kubernetes and application metrics, Grafana provides visualization, and Alertmanager provides the foundation for operational alerting.
+
+---
+
+## 🔄 GitOps
+
+Argo CD provides the GitOps deployment layer.
+
+```text
+GitHub Repository
+       │
+       ▼
+     Argo CD
+       │
+       ▼
+Environment Values
+       │
+       ▼
+   Helm Chart
+       │
+       ▼
+ Kubernetes / EKS
+```
+
+The Argo CD configuration enables:
+
 - Automated synchronization
-- Automatic pruning
 - Self-healing
-- Environment-specific Helm configuration
+- Automatic pruning
+- Environment-specific configuration
+- Declarative Kubernetes deployments
 - Automatic namespace creation
+
+---
+
+## 🔐 GitHub Actions OIDC Architecture
+
+The repository includes Terraform configuration for establishing secure GitHub Actions authentication to AWS using OpenID Connect (OIDC).
+
+The configuration is located at:
+
+```text
+terraform/github-oidc/
+```
+
+It defines the architecture for:
+
+- GitHub Actions OIDC identity provider
+- AWS IAM role for GitHub Actions
+- `sts:AssumeRoleWithWebIdentity`
+- Repository-restricted trust policy
+- Pull Request trust conditions
+- Main-branch trust conditions
+- Terraform state read access
+- KMS decrypt/describe access
+- AWS read-only access for planning
+- Temporary AWS credential architecture
+
+### Target Authentication Flow
+
+```text
+GitHub Actions
+      │
+      │ OIDC Token
+      ▼
+AWS IAM OIDC Provider
+      │
+      ▼
+AWS STS
+      │
+      │ AssumeRoleWithWebIdentity
+      ▼
+GitHub Actions IAM Role
+      │
+      ▼
+Temporary AWS Credentials
+      │
+      ├── Read Terraform State
+      ├── Read AWS Infrastructure
+      └── Generate Terraform Plan
+```
+
+### Why OIDC?
+
+The target design avoids storing long-lived AWS access keys in GitHub.
+
+Instead of configuring permanent credentials such as:
+
+```text
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+```
+
+GitHub Actions will authenticate through OIDC and receive temporary AWS credentials through AWS STS.
+
+### Current OIDC Status
+
+| Capability | Status |
+|------------|--------|
+| Terraform OIDC configuration | ✅ Complete |
+| GitHub OIDC provider resource | ✅ Defined |
+| AWS IAM role configuration | ✅ Defined |
+| Repository-restricted trust policy | ✅ Defined |
+| Main branch trust condition | ✅ Defined |
+| Pull Request trust condition | ✅ Defined |
+| Terraform state access policy | ✅ Defined |
+| KMS access policy | ✅ Defined |
+| Terraform CI validation | ✅ Passing |
+| Actual AWS OIDC provider deployment | ⏳ Pending AWS account |
+| Actual AWS IAM role deployment | ⏳ Pending AWS account |
+| GitHub → AWS authentication test | ⏳ Pending AWS account |
+| AWS-backed Terraform Plan | ⏳ Pending AWS account |
+
+This allows the security architecture to be developed and validated independently before connecting the project to a live AWS environment.
 
 ---
 
@@ -312,6 +475,7 @@ This prevents development, staging, and production environments from sharing the
 | Visualization | Grafana |
 | Alerting | Alertmanager |
 | CI/CD | GitHub Actions |
+| Cloud Authentication | GitHub Actions OIDC / AWS STS |
 | Terraform Linting | TFLint |
 | Security Scanning | Trivy |
 | Kubernetes Validation | Kubeconform |
@@ -324,28 +488,49 @@ This prevents development, staging, and production environments from sharing the
 
 ## 🔐 Security
 
-The project incorporates multiple infrastructure, Terraform state, CI/CD, and Kubernetes security controls.
+The project incorporates infrastructure, Terraform-state, CI/CD, Kubernetes, and cloud-authentication security controls.
+
+### Infrastructure Security
 
 - Private EKS API endpoint
 - AWS KMS encryption for Kubernetes secrets
-- Customer-managed KMS encryption for Terraform state
+- IAM-based AWS access
+- Environment isolation
+
+### Terraform State Security
+
+- Customer-managed KMS encryption
 - KMS key rotation
 - S3 Block Public Access
 - S3 state versioning
 - Native S3 Terraform state locking
+- Independent state per environment
+
+### CI/CD Security
+
 - Terraform security scanning with Trivy
 - Terraform linting with TFLint
 - Kubernetes schema validation
+- Pull Request validation
+- Credential-safe Terraform PR checks
+- GitHub OIDC architecture
+- Repository-restricted IAM trust policy
+- No long-lived AWS credentials required by the target CI/CD architecture
+
+### Kubernetes Security
+
 - Resource requests and limits
+- Namespace isolation
+- Readiness probes
+- Liveness probes
+- PodDisruptionBudget
 - CI validation before infrastructure changes are merged
-- Credential-safe Pull Request validation
-- No permanent AWS credentials required for current PR validation
 
 ---
 
 ## ✅ CI/CD & Validation
 
-The repository contains automated GitHub Actions workflows covering the complete platform stack.
+The repository contains automated GitHub Actions workflows covering the platform stack.
 
 | Workflow | Purpose |
 |----------|---------|
@@ -356,7 +541,9 @@ The repository contains automated GitHub Actions workflows covering the complete
 | Monitoring CI | Prometheus/Grafana stack rendering and configuration validation |
 | GitOps CI | Argo CD and environment-specific Helm configuration validation |
 
-### Terraform CI Matrix
+---
+
+## 🧱 Terraform CI Matrix
 
 Terraform CI uses a GitHub Actions matrix strategy to validate all three infrastructure environments.
 
@@ -377,15 +564,20 @@ Terraform CI
     │     ├── TFLint
     │     └── Trivy
     │
-    └── Production
+    ├── Production
+    │     ├── Terraform Init
+    │     ├── Terraform Format
+    │     ├── Terraform Validate
+    │     ├── TFLint
+    │     └── Trivy
+    │
+    └── GitHub OIDC
           ├── Terraform Init
           ├── Terraform Format
-          ├── Terraform Validate
-          ├── TFLint
-          └── Trivy
+          └── Terraform Validate
 ```
 
-The matrix strategy ensures infrastructure changes are validated consistently across development, staging, and production.
+The matrix strategy validates the three infrastructure environments consistently, while the GitHub OIDC Terraform root is validated through its own CI job.
 
 ---
 
@@ -426,7 +618,7 @@ Merge to Main
 
 ### PR Validation Strategy
 
-The current Pull Request workflow is designed to perform credential-safe Terraform checks without requiring long-lived AWS credentials.
+The current Pull Request workflow performs credential-safe Terraform checks without requiring long-lived AWS credentials.
 
 For each environment, the workflow performs:
 
@@ -436,9 +628,9 @@ For each environment, the workflow performs:
 - Independent matrix execution for dev, staging, and prod
 - Pull Request status checks before merge
 
-The remote backend configuration is not used for credential-free PR validation because accessing the real S3 backend would require AWS authentication.
+The remote backend is not used during credential-free PR validation because accessing the real S3 backend requires AWS authentication.
 
-This allows structural Terraform validation to run safely on Pull Requests while AWS-backed planning remains a separate future enhancement.
+Once AWS OIDC deployment is available, this workflow can be extended to authenticate to AWS and execute real Terraform plans.
 
 ### Current PR Validation Coverage
 
@@ -450,45 +642,61 @@ This allows structural Terraform validation to run safely on Pull Requests while
 
 ---
 
-## 🔐 Future AWS Authentication Strategy
+## 🔮 Target Terraform Plan Workflow
 
-A future enhancement will use GitHub Actions OpenID Connect (OIDC) to authenticate securely with AWS.
-
-The target authentication architecture is:
+Once an AWS account is connected and the OIDC infrastructure is deployed, the target Pull Request workflow will become:
 
 ```text
-GitHub Actions
-      │
-      │ OIDC
-      ▼
-AWS IAM
-      │
-      │ AssumeRole
-      ▼
+Developer
+    │
+    ▼
+Feature Branch
+    │
+    ▼
+Pull Request
+    │
+    ▼
+Terraform Format
+    │
+    ▼
+Terraform Validate
+    │
+    ▼
+TFLint
+    │
+    ▼
+Trivy
+    │
+    ▼
+GitHub OIDC
+    │
+    ▼
+AWS STS AssumeRole
+    │
+    ▼
 Temporary AWS Credentials
-      │
-      ▼
-Terraform
-      │
-      ├── Access Remote State
-      ├── Query AWS Resources
-      └── Generate Terraform Plan
+    │
+    ▼
+Remote State Access
+    │
+    ▼
+Terraform Plan
+    │
+    ▼
+Engineer Reviews Plan
+    │
+    ▼
+PR Approval
+    │
+    ▼
+Merge
 ```
 
-Using OIDC will eliminate the need to store long-lived AWS access keys in GitHub.
-
-The future workflow will support:
-
-- GitHub-to-AWS authentication using OIDC
-- IAM role assumption
-- Short-lived AWS credentials
-- Secure access to the S3 Terraform backend
-- AWS-backed Terraform Plan
-- Terraform Plan review before merge
+The actual AWS-backed Terraform Plan is intentionally not marked complete because no live AWS account is currently connected to the project.
 
 ---
 
-## 🔄 CI Pipeline
+## 🔄 Overall CI Pipeline
 
 ```text
 Developer
@@ -515,31 +723,35 @@ Main Branch
     ▼
 GitHub Actions
     │
-    ┌───────────────┬───────────────┐
-    │               │               │
-    ▼               ▼               ▼
-Terraform CI   Kubernetes CI      Helm CI
-    │               │               │
-    ▼               ▼               ▼
- TFLint         Kubeconform      helm lint
- Trivy                           helm template
-    │                               │
-    └──────────────┬────────────────┘
-                   │
-            ┌──────┴──────┐
-            ▼             ▼
-      Monitoring CI    GitOps CI
-            │             │
-            ▼             ▼
-      Prometheus /      Argo CD
-         Grafana        Helm Values
+    ┌──────────────────┬──────────────────┐
+    │                  │                  │
+    ▼                  ▼                  ▼
+Terraform CI      Kubernetes CI        Helm CI
+    │                  │                  │
+    ├── Dev            ▼                  ▼
+    ├── Staging    Kubeconform         helm lint
+    ├── Prod                          helm template
+    └── OIDC
+    │
+    ├── TFLint
+    └── Trivy
+           │
+           └──────────────┬───────────────┘
+                          │
+                   ┌──────┴──────┐
+                   ▼             ▼
+             Monitoring CI    GitOps CI
+                   │             │
+                   ▼             ▼
+             Prometheus /      Argo CD
+                Grafana        Helm Values
 ```
 
 ---
 
 ## 🧪 Local Validation
 
-### Terraform
+### Terraform Formatting
 
 Format all Terraform code:
 
@@ -547,35 +759,58 @@ Format all Terraform code:
 terraform fmt -recursive
 ```
 
-Validate development:
+Verify formatting:
+
+```bash
+terraform fmt -check -recursive
+```
+
+### Development
 
 ```bash
 terraform -chdir=terraform/environments/dev init -backend=false
 terraform -chdir=terraform/environments/dev validate
 ```
 
-Validate staging:
+### Staging
 
 ```bash
 terraform -chdir=terraform/environments/staging init -backend=false
 terraform -chdir=terraform/environments/staging validate
 ```
 
-Validate production:
+### Production
 
 ```bash
 terraform -chdir=terraform/environments/prod init -backend=false
 terraform -chdir=terraform/environments/prod validate
 ```
 
-Validate the remote-state bootstrap configuration:
+### GitHub OIDC
+
+```bash
+terraform -chdir=terraform/github-oidc init -backend=false
+terraform -chdir=terraform/github-oidc validate
+```
+
+Expected result:
+
+```text
+Success! The configuration is valid.
+```
+
+> Do not run `terraform apply` for the GitHub OIDC configuration until a real AWS account and account-specific values are configured.
+
+### Remote-State Bootstrap
 
 ```bash
 terraform -chdir=terraform/bootstrap init
 terraform -chdir=terraform/bootstrap validate
 ```
 
-### Kubernetes
+---
+
+## ☸️ Kubernetes Validation
 
 ```bash
 kubeconform -strict -summary kubernetes/*.yaml
@@ -590,7 +825,9 @@ Errors: 0
 Skipped: 0
 ```
 
-### Helm
+---
+
+## 📦 Helm Validation
 
 Lint the application chart:
 
@@ -611,9 +848,11 @@ Validate rendered resources:
 kubeconform -strict -summary /tmp/sre-demo-rendered.yaml
 ```
 
-### Monitoring
+---
 
-Add the Prometheus Community repository:
+## 📊 Monitoring Validation
+
+Add the Prometheus Community Helm repository:
 
 ```bash
 helm repo add prometheus-community \
@@ -632,7 +871,9 @@ helm template monitoring \
   > /tmp/monitoring-rendered.yaml
 ```
 
-### GitOps
+---
+
+## 🔄 GitOps Validation
 
 Render the application using the development GitOps values:
 
@@ -647,63 +888,6 @@ Validate:
 ```bash
 kubeconform -strict -summary /tmp/gitops-rendered.yaml
 ```
-
----
-
-## 📈 Observability
-
-The project uses `kube-prometheus-stack` to provide Kubernetes monitoring and observability.
-
-### Monitoring Flow
-
-```text
-Kubernetes Workloads
-        │
-        ▼
-  ServiceMonitor
-        │
-        ▼
-    Prometheus
-        │
-   ┌────┴────┐
-   ▼         ▼
-Grafana   Alertmanager
-             │
-             ▼
-       PrometheusRule
-```
-
-Prometheus collects Kubernetes and application metrics, Grafana provides visualization, and Alertmanager provides the foundation for operational alerting.
-
----
-
-## 🔄 GitOps Deployment
-
-Argo CD provides the GitOps deployment layer.
-
-```text
-GitHub Repository
-       │
-       ▼
-     Argo CD
-       │
-       ▼
-Environment Values
-       │
-       ▼
-   Helm Chart
-       │
-       ▼
- Kubernetes / EKS
-```
-
-The Argo CD configuration enables:
-
-- Automated synchronization
-- Self-healing
-- Automatic pruning
-- Environment-specific configuration
-- Declarative Kubernetes deployments
 
 ---
 
@@ -759,7 +943,7 @@ The Argo CD configuration enables:
 - [x] Staging environment
 - [x] Production environment
 - [x] Multi-environment Terraform CI matrix
-- [x] Amazon S3 remote state architecture
+- [x] Amazon S3 remote-state architecture
 - [x] Separate state per environment
 - [x] Native S3 state locking
 - [x] S3 state versioning
@@ -781,14 +965,37 @@ The Argo CD configuration enables:
 - [x] Credential-safe Pull Request checks
 - [x] PR checks before merge
 
-### Phase 8 — AWS Authentication & Terraform Plan 🚧
+### Phase 8 — GitHub OIDC & AWS Authentication 🚧
 
-- [ ] GitHub Actions OIDC integration
-- [ ] AWS IAM role for GitHub Actions
-- [ ] Short-lived AWS credentials
-- [ ] Secure remote-state access from CI
-- [ ] AWS-backed Terraform Plan on Pull Requests
-- [ ] Terraform Plan output review before merge
+#### Configuration Complete
+
+- [x] GitHub OIDC Terraform root
+- [x] GitHub OIDC identity-provider resource
+- [x] AWS IAM role configuration
+- [x] `AssumeRoleWithWebIdentity` trust policy
+- [x] Repository-restricted OIDC trust
+- [x] Main branch trust condition
+- [x] Pull Request trust condition
+- [x] Terraform state access policy
+- [x] KMS state-access policy
+- [x] GitHub OIDC Terraform CI job
+- [x] OIDC Terraform initialization
+- [x] OIDC Terraform formatting validation
+- [x] OIDC Terraform configuration validation
+
+#### AWS Deployment Pending
+
+- [ ] Create/connect AWS account
+- [ ] Deploy GitHub OIDC provider to AWS
+- [ ] Deploy GitHub Actions IAM role
+- [ ] Configure real Terraform state bucket value
+- [ ] Configure real KMS key ARN
+- [ ] Configure GitHub Actions `id-token: write`
+- [ ] Configure AWS role assumption in GitHub Actions
+- [ ] Verify GitHub → AWS OIDC authentication
+- [ ] Enable remote-state access from CI
+- [ ] Run real AWS-backed Terraform Plan
+- [ ] Review Terraform Plan on Pull Requests
 
 ### Phase 9 — Platform Enhancements 🚧
 
@@ -805,7 +1012,7 @@ The Argo CD configuration enables:
 
 ## 🎯 Project Goals
 
-This project is designed to demonstrate practical DevOps and Site Reliability Engineering capabilities across infrastructure provisioning, Kubernetes operations, CI/CD automation, observability, security, and GitOps.
+This project is designed to demonstrate practical DevOps and Site Reliability Engineering capabilities across infrastructure provisioning, Kubernetes operations, CI/CD automation, observability, security, cloud authentication, and GitOps.
 
 Key engineering goals include:
 
@@ -815,10 +1022,37 @@ Key engineering goals include:
 - Detect configuration and security issues early
 - Validate Pull Requests before merge
 - Avoid long-lived cloud credentials in CI/CD
+- Implement GitHub OIDC-based cloud authentication
+- Use temporary AWS credentials
+- Apply least-privilege IAM principles
 - Use GitOps principles for Kubernetes deployments
 - Implement Kubernetes observability
 - Secure Terraform state
 - Build toward production-style automated infrastructure delivery
+
+---
+
+## 📌 Current Project Status
+
+```text
+Terraform Modules                    ✅ Complete
+Development Environment             ✅ Complete
+Staging Environment                 ✅ Complete
+Production Environment              ✅ Complete
+Multi-Environment Terraform CI      ✅ Complete
+Terraform Remote-State Design       ✅ Complete
+Kubernetes Workloads                ✅ Complete
+Helm                                ✅ Complete
+Prometheus / Grafana                ✅ Complete
+Alertmanager                        ✅ Complete
+Argo CD / GitOps                    ✅ Complete
+Terraform PR Validation             ✅ Complete
+GitHub OIDC Terraform Code          ✅ Complete
+GitHub OIDC CI Validation           ✅ Complete
+AWS OIDC Deployment                 ⏳ Pending AWS Account
+AWS-backed Terraform Plan           ⏳ Pending AWS Account
+Terraform Apply Automation          ⏳ Future Enhancement
+```
 
 ---
 
