@@ -35,6 +35,11 @@ The platform combines Infrastructure as Code, Kubernetes workload management, He
 - Alertmanager
 - Prometheus alerting rules
 - ServiceMonitor configuration
+- Loki centralized logging
+- Grafana Alloy log collection
+- Kubernetes pod log collection
+- Kubernetes event collection
+- Grafana Loki data-source integration
 - Argo CD GitOps
 - Environment-specific Helm values
 - GitHub Actions CI/CD
@@ -47,6 +52,7 @@ The platform combines Infrastructure as Code, Kubernetes workload management, He
 - TFLint
 - Trivy IaC security scanning
 - Kubeconform schema validation
+- Dedicated Logging CI validation
 
 > **Note:** The GitHub OIDC and AWS IAM configuration is implemented and validated as Terraform code. Deployment to AWS and real AWS-backed Terraform planning remain pending until an AWS account and AWS resources are available.
 
@@ -108,6 +114,7 @@ aws-eks-terraform-platform/
 │       ├── kubernetes-ci.yml
 │       ├── helm-ci.yml
 │       ├── monitoring-ci.yml
+│       ├── logging-ci.yml
 │       └── gitops-ci.yml
 │
 ├── architecture/
@@ -175,6 +182,10 @@ aws-eks-terraform-platform/
 │
 ├── monitoring/
 │   ├── kube-prometheus-stack/
+│   │   └── values.yaml
+│   ├── loki/
+│   │   └── values.yaml
+│   ├── alloy/
 │   │   └── values.yaml
 │   ├── rules/
 │   │   └── sre-demo-rules.yaml
@@ -473,6 +484,9 @@ This allows the security architecture to be developed and validated independentl
 | GitOps | Argo CD |
 | Monitoring | Prometheus |
 | Visualization | Grafana |
+| Centralized Logging | Grafana Loki |
+| Log Collection | Grafana Alloy |
+| Log Querying | LogQL |
 | Alerting | Alertmanager |
 | CI/CD | GitHub Actions |
 | Cloud Authentication | GitHub Actions OIDC / AWS STS |
@@ -539,6 +553,7 @@ The repository contains automated GitHub Actions workflows covering the platform
 | Kubernetes CI | Kubernetes manifest validation using Kubeconform |
 | Helm CI | Helm linting, template rendering, and schema validation |
 | Monitoring CI | Prometheus/Grafana stack rendering and configuration validation |
+| Logging CI | Loki, Grafana Alloy, and monitoring-stack Helm rendering with Kubeconform validation |
 | GitOps CI | Argo CD and environment-specific Helm configuration validation |
 
 ---
@@ -997,12 +1012,24 @@ kubeconform -strict -summary /tmp/gitops-rendered.yaml
 - [ ] Run real AWS-backed Terraform Plan
 - [ ] Review Terraform Plan on Pull Requests
 
-### Phase 9 — Platform Enhancements 🚧
+### Phase 9 — Centralized Logging ✅
+
+- [x] Grafana Loki centralized logging
+- [x] Grafana Alloy log collection
+- [x] Kubernetes pod log collection
+- [x] Kubernetes event collection
+- [x] Grafana Loki data-source integration
+- [x] Loki Helm rendering and Kubeconform validation
+- [x] Grafana Alloy Helm rendering and Kubeconform validation
+- [x] Integrated monitoring-stack validation
+- [x] Dedicated Logging CI workflow
+- [x] Logging CI validation on the `main` branch
+
+### Phase 10 — Platform Enhancements 🚧
 
 - [ ] AWS Load Balancer Controller
 - [ ] ExternalDNS
 - [ ] External Secrets Operator
-- [ ] Loki centralized logging
 - [ ] OpenTelemetry
 - [ ] Custom Grafana dashboards
 - [ ] Alertmanager notification integrations
@@ -1045,6 +1072,10 @@ Kubernetes Workloads                ✅ Complete
 Helm                                ✅ Complete
 Prometheus / Grafana                ✅ Complete
 Alertmanager                        ✅ Complete
+Loki Centralized Logging            ✅ Complete
+Grafana Alloy Log Collection        ✅ Complete
+Grafana Loki Data Source            ✅ Complete
+Logging CI                          ✅ Complete
 Argo CD / GitOps                    ✅ Complete
 Terraform PR Validation             ✅ Complete
 GitHub OIDC Terraform Code          ✅ Complete
