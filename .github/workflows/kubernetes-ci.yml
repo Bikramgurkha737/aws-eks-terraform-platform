@@ -1,0 +1,41 @@
+name: Kubernetes CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "kubernetes/**"
+      - ".github/workflows/kubernetes-ci.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "kubernetes/**"
+      - ".github/workflows/kubernetes-ci.yml"
+
+jobs:
+  validate:
+    name: Validate Kubernetes Manifests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Kubeconform
+        run: |
+          curl -L -o kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
+
+          tar -xzf kubeconform.tar.gz
+
+          sudo mv kubeconform /usr/local/bin/kubeconform
+
+      - name: Validate Kubernetes manifests
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            kubernetes/*.yaml
