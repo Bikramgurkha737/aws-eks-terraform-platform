@@ -1,6 +1,6 @@
 # 🚀 AWS EKS Terraform Platform
 
-> Production-oriented AWS EKS platform built with Terraform, Kubernetes, Helm, Prometheus/Grafana, Argo CD GitOps, and automated GitHub Actions CI/CD validation.
+> Production-oriented AWS EKS platform built with Terraform, Kubernetes, Helm, Prometheus/Grafana, Argo CD GitOps, multi-environment infrastructure, secure remote state, and automated GitHub Actions CI/CD validation.
 
 ---
 
@@ -8,12 +8,18 @@
 
 This project demonstrates the design and implementation of a modular AWS Kubernetes platform following DevOps and Site Reliability Engineering (SRE) practices.
 
-The platform combines Infrastructure as Code, Kubernetes workload management, Helm packaging, observability, GitOps, security scanning, and automated CI validation.
+The platform combines Infrastructure as Code, Kubernetes workload management, Helm packaging, observability, GitOps, security scanning, multi-environment infrastructure, secure Terraform state management, and automated CI validation.
 
 ### Current Implementation
 
 - Modular Terraform architecture
+- Development, staging, and production environments
 - Environment-specific Terraform configuration
+- Secure Terraform remote state architecture
+- Amazon S3 Terraform state backend
+- Native S3 state locking
+- Customer-managed AWS KMS encryption for Terraform state
+- S3 versioning and public access protection
 - Amazon VPC networking
 - IAM roles for EKS
 - Amazon EKS
@@ -32,6 +38,7 @@ The platform combines Infrastructure as Code, Kubernetes workload management, He
 - Argo CD GitOps
 - Environment-specific Helm values
 - GitHub Actions CI/CD
+- Multi-environment Terraform CI matrix
 - TFLint
 - Trivy IaC security scanning
 - Kubeconform schema validation
@@ -52,6 +59,10 @@ GitHub Actions
    │
    ▼
 Terraform
+   │
+   ├── Dev
+   ├── Staging
+   └── Production
    │
    ▼
 AWS VPC
@@ -91,8 +102,32 @@ aws-eks-terraform-platform/
 │   └── aws-eks-architecture.png
 │
 ├── terraform/
+│   ├── bootstrap/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   └── outputs.tf
+│   │
 │   ├── environments/
-│   │   └── dev/
+│   │   ├── dev/
+│   │   │   ├── backend.tf
+│   │   │   ├── main.tf
+│   │   │   ├── outputs.tf
+│   │   │   ├── providers.tf
+│   │   │   └── variables.tf
+│   │   │
+│   │   ├── staging/
+│   │   │   ├── backend.tf
+│   │   │   ├── main.tf
+│   │   │   ├── outputs.tf
+│   │   │   ├── providers.tf
+│   │   │   └── variables.tf
+│   │   │
+│   │   └── prod/
+│   │       ├── backend.tf
+│   │       ├── main.tf
+│   │       ├── outputs.tf
+│   │       ├── providers.tf
+│   │       └── variables.tf
 │   │
 │   └── modules/
 │       ├── eks/
@@ -146,13 +181,75 @@ aws-eks-terraform-platform/
 
 - Infrastructure as Code with Terraform
 - Reusable Terraform modules
+- Development, staging, and production environments
 - Environment-specific configuration
-- AWS VPC networking
+- Environment-specific VPC networking
+- Independent Terraform state per environment
+- Secure S3 remote state architecture
+- Native S3 state locking
+- Customer-managed AWS KMS encryption
+- S3 state versioning
+- S3 Block Public Access
 - IAM roles and policy attachments
 - Amazon EKS
 - EKS Managed Node Groups
 - Private EKS API access
 - AWS KMS encryption for Kubernetes secrets
+
+### Multi-Environment Architecture
+
+The Terraform platform supports separate development, staging, and production environments while sharing reusable infrastructure modules.
+
+```text
+terraform/environments/
+├── dev/
+├── staging/
+└── prod/
+```
+
+Each environment provides:
+
+- Independent Terraform state
+- Separate EKS cluster naming
+- Environment-specific VPC CIDR ranges
+- Environment-specific worker-node sizing
+- Shared reusable Terraform modules
+- Independent validation through the Terraform CI matrix
+
+### Environment Strategy
+
+| Environment | Cluster | VPC CIDR | Node Type |
+|-------------|---------|----------|-----------|
+| Development | `sre-platform-dev` | `10.0.0.0/16` | `t3.small` |
+| Staging | `sre-platform-staging` | `10.1.0.0/16` | `t3.small` |
+| Production | `sre-platform-prod` | `10.2.0.0/16` | `t3.medium` |
+
+Production uses larger worker nodes and higher scaling capacity than development and staging.
+
+### Terraform Remote State
+
+The project includes a dedicated bootstrap configuration for secure Terraform remote state management.
+
+Implemented controls include:
+
+- Amazon S3 remote state backend
+- Separate state keys for development, staging, and production
+- S3 object versioning
+- Native Terraform state locking with `use_lockfile`
+- Customer-managed AWS KMS encryption
+- AWS KMS key rotation
+- S3 Block Public Access
+- Dedicated bootstrap Terraform configuration
+
+State is logically separated by environment:
+
+```text
+eks/dev/terraform.tfstate
+eks/staging/terraform.tfstate
+eks/prod/terraform.tfstate
+```
+
+This prevents development, staging, and production environments from sharing the same Terraform state.
 
 ### Kubernetes
 
@@ -214,6 +311,8 @@ aws-eks-terraform-platform/
 | Terraform Linting | TFLint |
 | Security Scanning | Trivy |
 | Kubernetes Validation | Kubeconform |
+| Terraform State | Amazon S3 |
+| State Encryption | AWS KMS |
 | Version Control | Git / GitHub |
 | IDE | Visual Studio Code |
 
@@ -221,10 +320,15 @@ aws-eks-terraform-platform/
 
 ## 🔐 Security
 
-The project incorporates multiple infrastructure and Kubernetes security controls.
+The project incorporates multiple infrastructure, Terraform state, CI/CD, and Kubernetes security controls.
 
 - Private EKS API endpoint
 - AWS KMS encryption for Kubernetes secrets
+- Customer-managed KMS encryption for Terraform state
+- KMS key rotation
+- S3 Block Public Access
+- S3 state versioning
+- Native S3 Terraform state locking
 - Terraform security scanning with Trivy
 - Terraform linting with TFLint
 - Kubernetes schema validation
@@ -239,11 +343,42 @@ The repository contains automated GitHub Actions workflows covering the complete
 
 | Workflow | Purpose |
 |----------|---------|
-| Terraform CI | Terraform formatting, validation, TFLint and Trivy security scanning |
+| Terraform CI | Matrix-based Terraform validation for dev, staging, and prod with TFLint and Trivy security scanning |
 | Kubernetes CI | Kubernetes manifest validation using Kubeconform |
 | Helm CI | Helm linting, template rendering and schema validation |
 | Monitoring CI | Prometheus/Grafana stack rendering and configuration validation |
 | GitOps CI | Argo CD and environment-specific Helm configuration validation |
+
+### Terraform CI Matrix
+
+Terraform CI uses a GitHub Actions matrix strategy to validate all three infrastructure environments.
+
+```text
+Terraform CI
+    │
+    ├── Development
+    │     ├── Terraform Init
+    │     ├── Terraform Format
+    │     ├── Terraform Validate
+    │     ├── TFLint
+    │     └── Trivy
+    │
+    ├── Staging
+    │     ├── Terraform Init
+    │     ├── Terraform Format
+    │     ├── Terraform Validate
+    │     ├── TFLint
+    │     └── Trivy
+    │
+    └── Production
+          ├── Terraform Init
+          ├── Terraform Format
+          ├── Terraform Validate
+          ├── TFLint
+          └── Trivy
+```
+
+The matrix strategy ensures infrastructure changes are validated consistently across development, staging, and production.
 
 ### CI Pipeline
 
@@ -280,17 +415,38 @@ Developer Push / Pull Request
 
 ### Terraform
 
-Format Terraform:
+Format all Terraform code:
 
 ```bash
 terraform fmt -recursive
 ```
 
-Validate the development environment:
+Validate development:
 
 ```bash
 terraform -chdir=terraform/environments/dev init -backend=false
 terraform -chdir=terraform/environments/dev validate
+```
+
+Validate staging:
+
+```bash
+terraform -chdir=terraform/environments/staging init -backend=false
+terraform -chdir=terraform/environments/staging validate
+```
+
+Validate production:
+
+```bash
+terraform -chdir=terraform/environments/prod init -backend=false
+terraform -chdir=terraform/environments/prod validate
+```
+
+Validate the remote-state bootstrap configuration:
+
+```bash
+terraform -chdir=terraform/bootstrap init
+terraform -chdir=terraform/bootstrap validate
 ```
 
 ### Kubernetes
@@ -471,12 +627,24 @@ The Argo CD configuration enables:
 - [x] Self-healing
 - [x] GitOps CI
 
-### Phase 6 — Future Enhancements 🚧
+### Phase 6 — Multi-Environment & Terraform State ✅
 
-- [ ] Remote Terraform state with S3
-- [ ] DynamoDB state locking / appropriate Terraform state locking
-- [ ] Staging environment
-- [ ] Production environment
+- [x] Development environment
+- [x] Staging environment
+- [x] Production environment
+- [x] Multi-environment Terraform CI matrix
+- [x] Amazon S3 remote state architecture
+- [x] Separate state per environment
+- [x] Native S3 state locking
+- [x] S3 state versioning
+- [x] Customer-managed KMS state encryption
+- [x] KMS key rotation
+- [x] S3 Block Public Access
+- [x] Terraform backend bootstrap configuration
+
+### Phase 7 — Future Enhancements 🚧
+
+- [ ] Terraform Plan on Pull Requests
 - [ ] AWS Load Balancer Controller
 - [ ] ExternalDNS
 - [ ] External Secrets Operator
@@ -484,7 +652,6 @@ The Argo CD configuration enables:
 - [ ] OpenTelemetry
 - [ ] Custom Grafana dashboards
 - [ ] Alertmanager notification integrations
-- [ ] Terraform Plan on Pull Requests
 
 ---
 
