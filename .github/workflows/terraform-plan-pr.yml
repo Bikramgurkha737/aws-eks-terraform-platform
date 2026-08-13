@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         environment:
           - dev
@@ -31,8 +32,17 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Disable remote backend for PR plan
+        run: |
+          if [ -f backend.tf ]; then
+            mv backend.tf backend.tf.disabled
+          fi
+
       - name: Terraform Init
-        run: terraform init -backend=false
+        run: terraform init
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive ../..
 
       - name: Terraform Validate
         run: terraform validate
