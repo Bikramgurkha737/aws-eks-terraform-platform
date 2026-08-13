@@ -42,15 +42,20 @@ config:
           action: upsert
 
   exporters:
-    debug:
-      verbosity: basic
+  debug:
+    verbosity: basic
+
+  otlp/tempo:
+    endpoint: tempo.monitoring.svc.cluster.local:4317
+    tls:
+      insecure: true
 
   service:
     telemetry:
       logs:
         level: info
 
-    pipelines:
+        pipelines:
       traces:
         receivers:
           - otlp
@@ -59,6 +64,7 @@ config:
           - resource
           - batch
         exporters:
+          - otlp/tempo
           - debug
 
       metrics:

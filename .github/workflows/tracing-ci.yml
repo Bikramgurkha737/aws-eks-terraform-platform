@@ -1,0 +1,105 @@
+name: Tracing CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "monitoring/tempo/**"
+      - "monitoring/opentelemetry/**"
+      - "monitoring/kube-prometheus-stack/**"
+      - ".github/workflows/tracing-ci.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "monitoring/tempo/**"
+      - "monitoring/opentelemetry/**"
+      - "monitoring/kube-prometheus-stack/**"
+      - ".github/workflows/tracing-ci.yml"
+
+jobs:
+  tracing:
+    name: Validate Tempo and OpenTelemetry
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v5
+
+      - name: Install Kubeconform
+        run: |
+          curl -L \
+            https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            -o kubeconform.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/kubeconform
+
+      - name: Add Helm repositories
+        run: |
+          helm repo add grafana-community https://grafana-community.github.io/helm-charts
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+          helm repo update
+
+      - name: Render Tempo
+        run: |
+          helm template tempo \
+            grafana-community/tempo \
+            --namespace monitoring \
+            -f monitoring/tempo/values.yaml \
+            > /tmp/tempo-rendered.yaml
+
+      - name: Validate Tempo
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -ignore-missing-schemas \
+            /tmp/tempo-rendered.yaml
+
+      - name: Render OpenTelemetry Collector
+        run: |
+          helm template opentelemetry \
+            open-telemetry/opentelemetry-collector \
+            --namespace monitoring \
+            -f monitoring/opentelemetry/values.yaml \
+            > /tmp/opentelemetry-rendered.yaml
+
+      - name: Validate OpenTelemetry Collector
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -ignore-missing-schemas \
+            /tmp/opentelemetry-rendered.yaml
+
+      - name: Render Monitoring Stack
+        run: |
+          helm template monitoring \
+            prometheus-community/kube-prometheus-stack \
+            --namespace monitoring \
+            -f monitoring/kube-prometheus-stack/values.yaml \
+            > /tmp/monitoring-rendered.yaml
+
+      - name: Validate Monitoring Stack
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -ignore-missing-schemas \
+            /tmp/monitoring-rendered.yaml
+
+      - name: Verify Tempo Grafana Data Source
+        run: |
+          grep -q "name: Tempo" /tmp/monitoring-rendered.yaml
+          grep -q "type: tempo" /tmp/monitoring-rendered.yaml
+          grep -q "http://tempo.monitoring.svc.cluster.local:3200" /tmp/monitoring-rendered.yaml
+
+      - name: Verify OpenTelemetry Tempo Exporter
+        run: |
+          grep -q "tempo.monitoring.svc.cluster.local:4317" /tmp/opentelemetry-rendered.yaml
