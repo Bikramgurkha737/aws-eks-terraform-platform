@@ -1,0 +1,53 @@
+name: Terraform Plan PR
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform-plan-pr.yml"
+
+jobs:
+  plan:
+    name: Terraform PR Checks - ${{ matrix.environment }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        environment:
+          - dev
+          - staging
+          - prod
+
+    defaults:
+      run:
+        working-directory: terraform/environments/${{ matrix.environment }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Disable remote backend for PR checks
+        run: |
+          if [ -f backend.tf ]; then
+            mv backend.tf backend.tf.disabled
+          fi
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive ../..
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan Status
+        run: |
+          echo "Terraform plan requires AWS credentials."
+          echo "Real plan execution will be enabled after GitHub OIDC is configured."
