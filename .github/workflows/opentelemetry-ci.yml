@@ -1,0 +1,57 @@
+name: OpenTelemetry CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "monitoring/opentelemetry/**"
+      - ".github/workflows/opentelemetry-ci.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "monitoring/opentelemetry/**"
+      - ".github/workflows/opentelemetry-ci.yml"
+
+jobs:
+  opentelemetry:
+    name: Validate OpenTelemetry Collector
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install Kubeconform
+        run: |
+          curl -L \
+            https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            -o kubeconform.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/kubeconform
+
+      - name: Add OpenTelemetry Helm repository
+        run: |
+          helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+          helm repo update
+
+      - name: Render OpenTelemetry Collector
+        run: |
+          helm template opentelemetry \
+            open-telemetry/opentelemetry-collector \
+            --namespace monitoring \
+            -f monitoring/opentelemetry/values.yaml \
+            > /tmp/opentelemetry-rendered.yaml
+
+      - name: Validate OpenTelemetry Collector
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -ignore-missing-schemas \
+            /tmp/opentelemetry-rendered.yaml
