@@ -1,0 +1,49 @@
+name: GitOps CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "gitops/**"
+      - "helm/**"
+      - ".github/workflows/gitops-ci.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "gitops/**"
+      - "helm/**"
+      - ".github/workflows/gitops-ci.yml"
+
+jobs:
+  validate:
+    name: Validate GitOps Configuration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Render application with dev values
+        run: |
+          helm template sre-demo helm/sre-demo \
+            -f gitops/environments/dev/values.yaml \
+            > gitops-rendered.yaml
+
+      - name: Install Kubeconform
+        run: |
+          curl -L -o kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/kubeconform
+
+      - name: Validate Helm-rendered manifests
+        run: kubeconform -strict -summary gitops-rendered.yaml
+
+      - name: Validate Argo CD manifests
+        run: kubeconform -strict -summary -ignore-missing-schemas gitops/argocd/*.yaml
