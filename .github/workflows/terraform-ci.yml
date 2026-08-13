@@ -19,12 +19,18 @@ on:
 
 jobs:
   terraform:
-    name: Terraform Quality Checks
+    name: Terraform Quality Checks - ${{ matrix.environment }}
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        environment:
+          - dev
+          - staging
 
     defaults:
       run:
-        working-directory: terraform/environments/dev
+        working-directory: terraform/environments/${{ matrix.environment }}
 
     steps:
       - name: Checkout repository
@@ -49,11 +55,11 @@ jobs:
 
       - name: Initialize TFLint
         run: tflint --init
-        working-directory: .
+        working-directory: ${{ github.workspace }}
 
       - name: Run TFLint
         run: tflint --recursive
-        working-directory: .
+        working-directory: ${{ github.workspace }}
 
       - name: Run Trivy IaC Security Scan
         uses: aquasecurity/trivy-action@master
