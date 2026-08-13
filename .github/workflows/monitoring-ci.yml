@@ -1,0 +1,59 @@
+name: Monitoring CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "monitoring/**"
+      - ".github/workflows/monitoring-ci.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "monitoring/**"
+      - ".github/workflows/monitoring-ci.yml"
+
+jobs:
+  validate:
+    name: Validate Monitoring Stack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Add Prometheus Community repo
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+
+      - name: Render kube-prometheus-stack
+        run: |
+          helm template monitoring \
+            prometheus-community/kube-prometheus-stack \
+            --namespace monitoring \
+            -f monitoring/kube-prometheus-stack/values.yaml \
+            > monitoring-rendered.yaml
+
+      - name: Verify rendered output
+        run: test -s monitoring-rendered.yaml
+
+      - name: Install Kubeconform
+        run: |
+          curl -L -o kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/kubeconform
+
+      - name: Validate standard Kubernetes resources
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -ignore-missing-schemas \
+            monitoring-rendered.yaml

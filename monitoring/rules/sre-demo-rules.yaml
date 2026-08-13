@@ -1,0 +1,28 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+
+metadata:
+  name: sre-demo-alerts
+  namespace: monitoring
+
+spec:
+  groups:
+    - name: sre-demo.rules
+
+      rules:
+        - alert: SREDemoPodsUnavailable
+
+          expr: |
+            kube_deployment_status_replicas_available{
+              namespace="sre-demo",
+              deployment="sre-demo-app"
+            } < 1
+
+          for: 5m
+
+          labels:
+            severity: critical
+
+          annotations:
+            summary: "SRE demo application has no available pods"
+            description: "The sre-demo-app deployment has had fewer than one available replica for 5 minutes."
