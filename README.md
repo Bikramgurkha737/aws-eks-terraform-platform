@@ -8,7 +8,7 @@
 
 This project demonstrates the design and implementation of a modular AWS Kubernetes platform following DevOps and Site Reliability Engineering (SRE) practices.
 
-The platform combines Infrastructure as Code, Kubernetes workload management, Helm packaging, observability, GitOps, security scanning, multi-environment infrastructure, secure Terraform state management, and automated CI validation.
+The platform combines Infrastructure as Code, Kubernetes workload management, Helm packaging, observability, GitOps, security scanning, multi-environment infrastructure, secure Terraform state management, and automated CI/CD validation.
 
 ### Current Implementation
 
@@ -39,6 +39,8 @@ The platform combines Infrastructure as Code, Kubernetes workload management, He
 - Environment-specific Helm values
 - GitHub Actions CI/CD
 - Multi-environment Terraform CI matrix
+- Pull Request Terraform validation
+- Credential-safe Terraform PR checks
 - TFLint
 - Trivy IaC security scanning
 - Kubeconform schema validation
@@ -93,6 +95,7 @@ aws-eks-terraform-platform/
 ├── .github/
 │   └── workflows/
 │       ├── terraform-ci.yml
+│       ├── terraform-plan-pr.yml
 │       ├── kubernetes-ci.yml
 │       ├── helm-ci.yml
 │       ├── monitoring-ci.yml
@@ -215,6 +218,7 @@ Each environment provides:
 - Environment-specific worker-node sizing
 - Shared reusable Terraform modules
 - Independent validation through the Terraform CI matrix
+- Independent Pull Request validation
 
 ### Environment Strategy
 
@@ -334,6 +338,8 @@ The project incorporates multiple infrastructure, Terraform state, CI/CD, and Ku
 - Kubernetes schema validation
 - Resource requests and limits
 - CI validation before infrastructure changes are merged
+- Credential-safe Pull Request validation
+- No permanent AWS credentials required for current PR validation
 
 ---
 
@@ -344,8 +350,9 @@ The repository contains automated GitHub Actions workflows covering the complete
 | Workflow | Purpose |
 |----------|---------|
 | Terraform CI | Matrix-based Terraform validation for dev, staging, and prod with TFLint and Trivy security scanning |
+| Terraform Plan PR | Credential-safe Terraform validation for dev, staging, and prod on Pull Requests |
 | Kubernetes CI | Kubernetes manifest validation using Kubeconform |
-| Helm CI | Helm linting, template rendering and schema validation |
+| Helm CI | Helm linting, template rendering, and schema validation |
 | Monitoring CI | Prometheus/Grafana stack rendering and configuration validation |
 | GitOps CI | Argo CD and environment-specific Helm configuration validation |
 
@@ -380,33 +387,152 @@ Terraform CI
 
 The matrix strategy ensures infrastructure changes are validated consistently across development, staging, and production.
 
-### CI Pipeline
+---
+
+## 🔀 Pull Request Terraform Validation
+
+Terraform infrastructure changes are validated before they are merged into the `main` branch.
+
+The Pull Request workflow runs independently for all three Terraform environments:
 
 ```text
-Developer Push / Pull Request
-              │
-              ▼
-           GitHub
-              │
-     ┌────────┼─────────┐
-     │        │         │
-     ▼        ▼         ▼
- Terraform Kubernetes  Helm
-    CI        CI        CI
-     │        │         │
-     ▼        ▼         ▼
-  TFLint  Kubeconform helm lint
-  Trivy               helm template
-     │                  │
-     └────────┬─────────┘
-              │
-       ┌──────┴──────┐
-       ▼             ▼
- Monitoring CI    GitOps CI
-       │             │
-       ▼             ▼
- Prometheus/      Argo CD
- Grafana          Helm Values
+Feature Branch
+      │
+      ▼
+Pull Request
+      │
+      ▼
+Terraform PR Checks
+      │
+      ├── Development
+      ├── Staging
+      └── Production
+      │
+      ▼
+Terraform Init
+      │
+      ▼
+Terraform Format Check
+      │
+      ▼
+Terraform Validate
+      │
+      ▼
+PR Checks Pass
+      │
+      ▼
+Merge to Main
+```
+
+### PR Validation Strategy
+
+The current Pull Request workflow is designed to perform credential-safe Terraform checks without requiring long-lived AWS credentials.
+
+For each environment, the workflow performs:
+
+- Terraform initialization for validation
+- Terraform formatting checks
+- Terraform configuration validation
+- Independent matrix execution for dev, staging, and prod
+- Pull Request status checks before merge
+
+The remote backend configuration is not used for credential-free PR validation because accessing the real S3 backend would require AWS authentication.
+
+This allows structural Terraform validation to run safely on Pull Requests while AWS-backed planning remains a separate future enhancement.
+
+### Current PR Validation Coverage
+
+| Environment | PR Validation |
+|-------------|---------------|
+| Development | ✅ Enabled |
+| Staging | ✅ Enabled |
+| Production | ✅ Enabled |
+
+---
+
+## 🔐 Future AWS Authentication Strategy
+
+A future enhancement will use GitHub Actions OpenID Connect (OIDC) to authenticate securely with AWS.
+
+The target authentication architecture is:
+
+```text
+GitHub Actions
+      │
+      │ OIDC
+      ▼
+AWS IAM
+      │
+      │ AssumeRole
+      ▼
+Temporary AWS Credentials
+      │
+      ▼
+Terraform
+      │
+      ├── Access Remote State
+      ├── Query AWS Resources
+      └── Generate Terraform Plan
+```
+
+Using OIDC will eliminate the need to store long-lived AWS access keys in GitHub.
+
+The future workflow will support:
+
+- GitHub-to-AWS authentication using OIDC
+- IAM role assumption
+- Short-lived AWS credentials
+- Secure access to the S3 Terraform backend
+- AWS-backed Terraform Plan
+- Terraform Plan review before merge
+
+---
+
+## 🔄 CI Pipeline
+
+```text
+Developer
+    │
+    ▼
+Feature Branch
+    │
+    ▼
+Pull Request
+    │
+    ▼
+Terraform PR Validation
+    │
+    ├── Dev
+    ├── Staging
+    └── Prod
+    │
+    ▼
+PR Approval / Merge
+    │
+    ▼
+Main Branch
+    │
+    ▼
+GitHub Actions
+    │
+    ┌───────────────┬───────────────┐
+    │               │               │
+    ▼               ▼               ▼
+Terraform CI   Kubernetes CI      Helm CI
+    │               │               │
+    ▼               ▼               ▼
+ TFLint         Kubeconform      helm lint
+ Trivy                           helm template
+    │                               │
+    └──────────────┬────────────────┘
+                   │
+            ┌──────┴──────┐
+            ▼             ▼
+      Monitoring CI    GitOps CI
+            │             │
+            ▼             ▼
+      Prometheus /      Argo CD
+         Grafana        Helm Values
 ```
 
 ---
@@ -642,9 +768,30 @@ The Argo CD configuration enables:
 - [x] S3 Block Public Access
 - [x] Terraform backend bootstrap configuration
 
-### Phase 7 — Future Enhancements 🚧
+### Phase 7 — Pull Request Automation ✅
 
-- [ ] Terraform Plan on Pull Requests
+- [x] Terraform Pull Request workflow
+- [x] Development PR validation
+- [x] Staging PR validation
+- [x] Production PR validation
+- [x] Multi-environment PR matrix
+- [x] Terraform initialization for PR validation
+- [x] Terraform format checks
+- [x] Terraform configuration validation
+- [x] Credential-safe Pull Request checks
+- [x] PR checks before merge
+
+### Phase 8 — AWS Authentication & Terraform Plan 🚧
+
+- [ ] GitHub Actions OIDC integration
+- [ ] AWS IAM role for GitHub Actions
+- [ ] Short-lived AWS credentials
+- [ ] Secure remote-state access from CI
+- [ ] AWS-backed Terraform Plan on Pull Requests
+- [ ] Terraform Plan output review before merge
+
+### Phase 9 — Platform Enhancements 🚧
+
 - [ ] AWS Load Balancer Controller
 - [ ] ExternalDNS
 - [ ] External Secrets Operator
@@ -652,6 +799,26 @@ The Argo CD configuration enables:
 - [ ] OpenTelemetry
 - [ ] Custom Grafana dashboards
 - [ ] Alertmanager notification integrations
+- [ ] Automated Terraform Apply with approval controls
+
+---
+
+## 🎯 Project Goals
+
+This project is designed to demonstrate practical DevOps and Site Reliability Engineering capabilities across infrastructure provisioning, Kubernetes operations, CI/CD automation, observability, security, and GitOps.
+
+Key engineering goals include:
+
+- Build reusable Infrastructure as Code
+- Maintain isolated development, staging, and production environments
+- Validate infrastructure changes automatically
+- Detect configuration and security issues early
+- Validate Pull Requests before merge
+- Avoid long-lived cloud credentials in CI/CD
+- Use GitOps principles for Kubernetes deployments
+- Implement Kubernetes observability
+- Secure Terraform state
+- Build toward production-style automated infrastructure delivery
 
 ---
 
