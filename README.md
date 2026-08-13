@@ -1025,12 +1025,26 @@ kubeconform -strict -summary /tmp/gitops-rendered.yaml
 - [x] Dedicated Logging CI workflow
 - [x] Logging CI validation on the `main` branch
 
-### Phase 10 — Platform Enhancements 🚧
+### Phase 10 — Distributed Tracing ✅
+
+- [x] OpenTelemetry Collector
+- [x] OTLP/gRPC receiver on port 4317
+- [x] OTLP/HTTP receiver on port 4318
+- [x] Memory limiter, resource, and batch processors
+- [x] Grafana Tempo
+- [x] OpenTelemetry to Tempo OTLP trace export
+- [x] Grafana Tempo data-source integration
+- [x] Tempo Helm rendering and Kubeconform validation
+- [x] OpenTelemetry Helm rendering and Kubeconform validation
+- [x] Integrated monitoring-stack validation
+- [x] Dedicated Tracing CI workflow
+- [x] Tracing CI validation on the `main` branch
+
+### Phase 11 — Platform Enhancements 🚧
 
 - [ ] AWS Load Balancer Controller
 - [ ] ExternalDNS
 - [ ] External Secrets Operator
-- [ ] OpenTelemetry
 - [ ] Custom Grafana dashboards
 - [ ] Alertmanager notification integrations
 - [ ] Automated Terraform Apply with approval controls
