@@ -1,0 +1,95 @@
+name: Logging CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "monitoring/loki/**"
+      - "monitoring/alloy/**"
+      - "monitoring/kube-prometheus-stack/**"
+      - ".github/workflows/logging-ci.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "monitoring/loki/**"
+      - "monitoring/alloy/**"
+      - "monitoring/kube-prometheus-stack/**"
+      - ".github/workflows/logging-ci.yml"
+
+jobs:
+  logging:
+    name: Validate Loki and Alloy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install Kubeconform
+        run: |
+          curl -L \
+            https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            -o kubeconform.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/kubeconform
+
+      - name: Add Helm repositories
+        run: |
+          helm repo add grafana-community https://grafana-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+
+      - name: Render Loki
+        run: |
+          helm template loki \
+            grafana-community/loki \
+            --namespace monitoring \
+            -f monitoring/loki/values.yaml \
+            > /tmp/loki-rendered.yaml
+
+      - name: Validate Loki
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -ignore-missing-schemas \
+            /tmp/loki-rendered.yaml
+
+      - name: Render Alloy
+        run: |
+          helm template alloy \
+            grafana/alloy \
+            --namespace monitoring \
+            -f monitoring/alloy/values.yaml \
+            > /tmp/alloy-rendered.yaml
+
+      - name: Validate Alloy
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -ignore-missing-schemas \
+            /tmp/alloy-rendered.yaml
+
+      - name: Render Monitoring Stack
+        run: |
+          helm template monitoring \
+            prometheus-community/kube-prometheus-stack \
+            --namespace monitoring \
+            -f monitoring/kube-prometheus-stack/values.yaml \
+            > /tmp/monitoring-rendered.yaml
+
+      - name: Validate Monitoring Stack
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -ignore-missing-schemas \
+            /tmp/monitoring-rendered.yaml
