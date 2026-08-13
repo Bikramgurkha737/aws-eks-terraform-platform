@@ -27,6 +27,7 @@ jobs:
         environment:
           - dev
           - staging
+          - prod
 
     defaults:
       run:
