@@ -39,3 +39,8 @@ variable "aws_load_balancer_controller_oidc_issuer_url" {
   type        = string
   default     = "https://oidc.eks.placeholder.amazonaws.com/id/PLACEHOLDER"
 }
+
+variable "route53_zone_arns" {
+  description = "Route53 hosted zone ARNs managed by ExternalDNS and cert-manager"
+  type        = list(string)
+}
