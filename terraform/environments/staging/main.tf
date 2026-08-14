@@ -61,7 +61,7 @@ module "external_dns_irsa" {
   namespace            = "external-dns"
   service_account_name = "external-dns"
 
-  route53_zone_arns = ["*"]
+  route53_zone_arns = var.route53_zone_arns
 
   tags = {
     Environment = "staging"
@@ -81,7 +81,7 @@ module "cert_manager_irsa" {
   namespace            = "cert-manager"
   service_account_name = "cert-manager"
 
-  route53_zone_arns = ["*"]
+  route53_zone_arns = var.route53_zone_arns
 
   tags = {
     Environment = "staging"
