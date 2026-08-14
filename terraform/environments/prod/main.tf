@@ -68,3 +68,23 @@ module "external_dns_irsa" {
     Project     = "aws-eks-terraform-platform"
   }
 }
+
+# cert-manager IRSA
+module "cert_manager_irsa" {
+  source = "../../modules/cert-manager-irsa"
+
+  cluster_name = var.cluster_name
+
+  oidc_provider_arn = var.aws_load_balancer_controller_oidc_provider_arn
+  oidc_provider_url = var.aws_load_balancer_controller_oidc_issuer_url
+
+  namespace            = "cert-manager"
+  service_account_name = "cert-manager"
+
+  route53_zone_arns = ["*"]
+
+  tags = {
+    Environment = "prod"
+    Project     = "aws-eks-terraform-platform"
+  }
+}
