@@ -1,0 +1,126 @@
+name: AWS Load Balancer Controller CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "kubernetes/aws-load-balancer-controller/**"
+      - "terraform/modules/aws-load-balancer-controller-irsa/**"
+      - "terraform/environments/dev/**"
+      - "terraform/environments/staging/**"
+      - "terraform/environments/prod/**"
+      - ".github/workflows/aws-load-balancer-controller-ci.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "kubernetes/aws-load-balancer-controller/**"
+      - "terraform/modules/aws-load-balancer-controller-irsa/**"
+      - "terraform/environments/dev/**"
+      - "terraform/environments/staging/**"
+      - "terraform/environments/prod/**"
+      - ".github/workflows/aws-load-balancer-controller-ci.yml"
+
+jobs:
+  aws-load-balancer-controller:
+    name: Validate AWS Load Balancer Controller
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v5
+
+      - name: Install Kubeconform
+        run: |
+          curl -L \
+            https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            -o kubeconform.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/kubeconform
+
+      - name: Add AWS EKS Helm repository
+        run: |
+          helm repo add eks https://aws.github.io/eks-charts
+          helm repo update
+
+      - name: Render AWS Load Balancer Controller
+        run: |
+          helm template aws-load-balancer-controller \
+            eks/aws-load-balancer-controller \
+            --namespace kube-system \
+            -f kubernetes/aws-load-balancer-controller/values.yaml \
+            > /tmp/aws-lbc-rendered.yaml
+
+      - name: Validate AWS Load Balancer Controller
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -ignore-missing-schemas \
+            /tmp/aws-lbc-rendered.yaml
+
+      - name: Validate IRSA Module
+        run: |
+          terraform \
+            -chdir=terraform/modules/aws-load-balancer-controller-irsa \
+            init \
+            -backend=false
+
+          terraform \
+            -chdir=terraform/modules/aws-load-balancer-controller-irsa \
+            validate
+
+      - name: Validate Dev Environment
+        run: |
+          terraform \
+            -chdir=terraform/environments/dev \
+            init \
+            -backend=false
+
+          terraform \
+            -chdir=terraform/environments/dev \
+            validate
+
+      - name: Validate Staging Environment
+        run: |
+          terraform \
+            -chdir=terraform/environments/staging \
+            init \
+            -backend=false
+
+          terraform \
+            -chdir=terraform/environments/staging \
+            validate
+
+      - name: Validate Prod Environment
+        run: |
+          terraform \
+            -chdir=terraform/environments/prod \
+            init \
+            -backend=false
+
+          terraform \
+            -chdir=terraform/environments/prod \
+            validate
+
+      - name: Verify Helm Configuration
+        run: |
+          grep -q "aws-load-balancer-controller" /tmp/aws-lbc-rendered.yaml
+          grep -q "sre-eks-platform" /tmp/aws-lbc-rendered.yaml
+          grep -q "serviceAccountName: aws-load-balancer-controller" /tmp/aws-lbc-rendered.yaml
+
+      - name: Verify IRSA Configuration
+        run: |
+          grep -q "sts:AssumeRoleWithWebIdentity" \
+            terraform/modules/aws-load-balancer-controller-irsa/main.tf
+
+          grep -q "system:serviceaccount" \
+            terraform/modules/aws-load-balancer-controller-irsa/main.tf

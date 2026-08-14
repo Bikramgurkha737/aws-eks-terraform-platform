@@ -1,0 +1,25 @@
+clusterName: sre-eks-platform
+
+region: us-east-1
+
+serviceAccount:
+  create: false
+  name: aws-load-balancer-controller
+
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+enableServiceMutatorWebhook: true
+
+enableShield: false
+enableWaf: false
+enableWafv2: false
+
+logLevel: info

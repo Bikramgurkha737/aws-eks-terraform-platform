@@ -27,3 +27,24 @@ module "eks" {
   min_size     = 2
   max_size     = 6
 }
+
+# AWS Load Balancer Controller IRSA
+module "aws_load_balancer_controller_irsa" {
+  source = "../../modules/aws-load-balancer-controller-irsa"
+
+  cluster_name = var.cluster_name
+
+  cluster_oidc_provider_arn = var.aws_load_balancer_controller_oidc_provider_arn
+  cluster_oidc_issuer_url   = var.aws_load_balancer_controller_oidc_issuer_url
+
+  namespace            = "kube-system"
+  service_account_name = "aws-load-balancer-controller"
+
+  role_name   = "AWSLoadBalancerControllerRole-prod"
+  policy_name = "AWSLoadBalancerControllerIAMPolicy-prod"
+
+  tags = {
+    Environment = "prod"
+    Project     = "aws-eks-terraform-platform"
+  }
+}

@@ -27,3 +27,15 @@ variable "public_subnet_2_cidr" {
   type        = string
   default     = "10.2.2.0/24"
 }
+
+variable "aws_load_balancer_controller_oidc_provider_arn" {
+  description = "IAM OIDC provider ARN for AWS Load Balancer Controller IRSA."
+  type        = string
+  default     = "arn:aws:iam::000000000000:oidc-provider/oidc.eks.placeholder.amazonaws.com/id/PLACEHOLDER"
+}
+
+variable "aws_load_balancer_controller_oidc_issuer_url" {
+  description = "EKS OIDC issuer URL for AWS Load Balancer Controller IRSA."
+  type        = string
+  default     = "https://oidc.eks.placeholder.amazonaws.com/id/PLACEHOLDER"
+}
