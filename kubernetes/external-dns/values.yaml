@@ -1,0 +1,30 @@
+provider:
+  name: aws
+
+sources:
+  - service
+  - ingress
+
+policy: sync
+
+registry: txt
+txtOwnerId: aws-eks-terraform-platform
+
+domainFilters: []
+
+serviceAccount:
+  create: true
+  name: external-dns
+  annotations:
+    eks.amazonaws.com/role-arn: EXTERNAL_DNS_IAM_ROLE_ARN
+
+extraArgs:
+  - --aws-zone-type=public
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

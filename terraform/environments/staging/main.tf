@@ -48,3 +48,23 @@ module "aws_load_balancer_controller_irsa" {
     Project     = "aws-eks-terraform-platform"
   }
 }
+
+# ExternalDNS IRSA
+module "external_dns_irsa" {
+  source = "../../modules/external-dns-irsa"
+
+  cluster_name = var.cluster_name
+
+  oidc_provider_arn = var.aws_load_balancer_controller_oidc_provider_arn
+  oidc_provider_url = var.aws_load_balancer_controller_oidc_issuer_url
+
+  namespace            = "external-dns"
+  service_account_name = "external-dns"
+
+  route53_zone_arns = ["*"]
+
+  tags = {
+    Environment = "staging"
+    Project     = "aws-eks-terraform-platform"
+  }
+}
