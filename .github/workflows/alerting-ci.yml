@@ -1,0 +1,83 @@
+name: Alerting CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "monitoring/kube-prometheus-stack/**"
+      - "monitoring/rules/**"
+      - ".github/workflows/alerting-ci.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "monitoring/kube-prometheus-stack/**"
+      - "monitoring/rules/**"
+      - ".github/workflows/alerting-ci.yml"
+
+jobs:
+  alerting:
+    name: Validate Alertmanager and Prometheus Rules
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v5
+
+      - name: Install Kubeconform
+        run: |
+          curl -L \
+            https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            -o kubeconform.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/kubeconform
+
+      - name: Add Prometheus Community Helm repository
+        run: |
+          helm repo add prometheus-community \
+            https://prometheus-community.github.io/helm-charts
+          helm repo update
+
+      - name: Validate Custom PrometheusRule
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -ignore-missing-schemas \
+            monitoring/rules/sre-demo-rules.yaml
+
+      - name: Render Monitoring Stack
+        run: |
+          helm template monitoring \
+            prometheus-community/kube-prometheus-stack \
+            --namespace monitoring \
+            -f monitoring/kube-prometheus-stack/values.yaml \
+            > /tmp/monitoring-rendered.yaml
+
+      - name: Validate Monitoring Stack
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -ignore-missing-schemas \
+            /tmp/monitoring-rendered.yaml
+
+      - name: Verify Alertmanager Severity Routing
+        run: |
+          grep -q 'severity = "critical"' /tmp/monitoring-rendered.yaml
+          grep -q 'severity = "warning"' /tmp/monitoring-rendered.yaml
+          grep -q 'severity = "info"' /tmp/monitoring-rendered.yaml
+          grep -q 'repeat_interval' /tmp/monitoring-rendered.yaml
+          grep -q 'inhibit_rules' /tmp/monitoring-rendered.yaml
+
+      - name: Verify Custom Alert Rules
+        run: |
+          grep -q 'SREDemoPodsUnavailable' monitoring/rules/sre-demo-rules.yaml
+          grep -q 'SREDemoDeploymentDegraded' monitoring/rules/sre-demo-rules.yaml
+          grep -q 'SREDemoContainerRestarting' monitoring/rules/sre-demo-rules.yaml
+          grep -q 'SREDemoNoRecentRestart' monitoring/rules/sre-demo-rules.yaml

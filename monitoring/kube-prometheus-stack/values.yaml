@@ -51,6 +51,62 @@ prometheus:
 alertmanager:
   enabled: true
 
+  config:
+    global:
+      resolve_timeout: 5m
+
+    route:
+      receiver: default
+      group_by:
+        - namespace
+        - alertname
+        - severity
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+
+      routes:
+        - receiver: critical
+          matchers:
+            - severity = "critical"
+          continue: false
+
+        - receiver: warning
+          matchers:
+            - severity = "warning"
+          continue: false
+
+        - receiver: info
+          matchers:
+            - severity = "info"
+          continue: false
+
+    inhibit_rules:
+      - source_matchers:
+          - severity = "critical"
+        target_matchers:
+          - severity =~ "warning|info"
+        equal:
+          - namespace
+          - alertname
+
+      - source_matchers:
+          - severity = "warning"
+        target_matchers:
+          - severity = "info"
+        equal:
+          - namespace
+          - alertname
+
+    receivers:
+      - name: default
+
+      - name: critical
+
+      - name: warning
+
+      - name: info
+
   alertmanagerSpec:
     resources:
       requests:

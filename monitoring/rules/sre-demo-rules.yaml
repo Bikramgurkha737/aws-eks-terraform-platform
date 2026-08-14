@@ -11,7 +11,6 @@ spec:
 
       rules:
         - alert: SREDemoPodsUnavailable
-
           expr: |
             kube_deployment_status_replicas_available{
               namespace="sre-demo",
@@ -22,7 +21,72 @@ spec:
 
           labels:
             severity: critical
+            service: sre-demo
+            team: platform
 
           annotations:
             summary: "SRE demo application has no available pods"
             description: "The sre-demo-app deployment has had fewer than one available replica for 5 minutes."
+
+        - alert: SREDemoDeploymentDegraded
+          expr: |
+            kube_deployment_status_replicas_available{
+              namespace="sre-demo",
+              deployment="sre-demo-app"
+            }
+            <
+            kube_deployment_spec_replicas{
+              namespace="sre-demo",
+              deployment="sre-demo-app"
+            }
+
+          for: 10m
+
+          labels:
+            severity: warning
+            service: sre-demo
+            team: platform
+
+          annotations:
+            summary: "SRE demo deployment is degraded"
+            description: "The sre-demo-app deployment has fewer available replicas than desired for 10 minutes."
+
+        - alert: SREDemoContainerRestarting
+          expr: |
+            increase(
+              kube_pod_container_status_restarts_total{
+                namespace="sre-demo"
+              }[15m]
+            ) > 2
+
+          for: 5m
+
+          labels:
+            severity: warning
+            service: sre-demo
+            team: platform
+
+          annotations:
+            summary: "SRE demo container is restarting frequently"
+            description: "A container in the sre-demo namespace restarted more than twice during the last 15 minutes."
+
+        - alert: SREDemoNoRecentRestart
+          expr: |
+            sum(
+              increase(
+                kube_pod_container_status_restarts_total{
+                  namespace="sre-demo"
+                }[1h]
+              )
+            ) == 0
+
+          for: 30m
+
+          labels:
+            severity: info
+            service: sre-demo
+            team: platform
+
+          annotations:
+            summary: "SRE demo workload has remained stable"
+            description: "No container restarts have occurred in the sre-demo namespace during the last hour."
