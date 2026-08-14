@@ -26,3 +26,8 @@ variable "route53_zone_arns" {
   type        = list(string)
 }
 
+
+variable "external_secrets_secret_arns" {
+  description = "AWS Secrets Manager secret ARNs readable by External Secrets Operator"
+  type        = list(string)
+}

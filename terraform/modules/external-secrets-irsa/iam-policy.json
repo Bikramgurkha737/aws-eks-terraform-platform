@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ],
+      "Resource": ${jsonencode(secret_arns)}
+    }
+    %{ if length(kms_key_arns) > 0 },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "kms:Decrypt"
+      ],
+      "Resource": ${jsonencode(kms_key_arns)}
+    }
+    %{ endif }
+  ]
+}

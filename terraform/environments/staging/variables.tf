@@ -44,3 +44,8 @@ variable "route53_zone_arns" {
   description = "Route53 hosted zone ARNs managed by ExternalDNS and cert-manager"
   type        = list(string)
 }
+
+variable "external_secrets_secret_arns" {
+  description = "AWS Secrets Manager secret ARNs readable by External Secrets Operator"
+  type        = list(string)
+}
