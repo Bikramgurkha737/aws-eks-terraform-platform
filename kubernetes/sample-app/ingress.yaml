@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sample-app
+  labels:
+    app: sample-app
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+
+    # Replace with a real ACM certificate ARN before deployment.
+    alb.ingress.kubernetes.io/certificate-arn: ACM_CERTIFICATE_ARN
+
+    external-dns.alpha.kubernetes.io/hostname: sample-app.example.com
+
+spec:
+  ingressClassName: alb
+
+  rules:
+    - host: sample-app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sample-app
+                port:
+                  name: http
