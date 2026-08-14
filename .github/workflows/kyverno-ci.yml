@@ -1,0 +1,40 @@
+name: Kyverno Policy CI
+
+on:
+  pull_request:
+    paths:
+      - "kubernetes/kyverno/**"
+      - "kubernetes/sample-app/**"
+      - ".github/workflows/kyverno-ci.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "kubernetes/kyverno/**"
+      - "kubernetes/sample-app/**"
+      - ".github/workflows/kyverno-ci.yml"
+
+jobs:
+  validate:
+    name: Validate Kyverno Policies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate policy YAML
+        run: |
+          ruby -e 'require "yaml"; Dir["kubernetes/kyverno/policies/*.yaml"].each { |f| YAML.load_stream(File.read(f)); puts "#{f} valid" }'
+
+      - name: Install Kyverno CLI
+        uses: kyverno/action-install-cli@v0.2.0
+
+      - name: Verify Kyverno CLI
+        run: kyverno version
+
+      - name: Evaluate sample app against policies
+        run: |
+          kyverno apply kubernetes/kyverno/policies \
+            --resource kubernetes/sample-app/deployment.yaml
