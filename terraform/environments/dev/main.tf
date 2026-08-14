@@ -84,3 +84,23 @@ module "cert_manager_irsa" {
     Project     = "aws-eks-terraform-platform"
   }
 }
+
+# External Secrets Operator IRSA
+module "external_secrets_irsa" {
+  source = "../../modules/external-secrets-irsa"
+
+  cluster_name = var.cluster_name
+
+  oidc_provider_arn = var.aws_load_balancer_controller_oidc_provider_arn
+  oidc_provider_url = var.aws_load_balancer_controller_oidc_issuer_url
+
+  namespace            = "external-secrets"
+  service_account_name = "external-secrets"
+
+  secret_arns = var.external_secrets_secret_arns
+
+  tags = {
+    Environment = "dev"
+    Project     = "aws-eks-terraform-platform"
+  }
+}

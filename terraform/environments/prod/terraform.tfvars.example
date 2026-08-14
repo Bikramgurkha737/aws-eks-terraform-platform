@@ -1,3 +1,7 @@
 route53_zone_arns = [
   "arn:aws:route53:::hostedzone/ZPRODEXAMPLE123456"
 ]
+
+external_secrets_secret_arns = [
+  "arn:aws:secretsmanager:us-east-1:000000000000:secret:sample-app/example"
+]
