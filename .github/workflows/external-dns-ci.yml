@@ -1,0 +1,81 @@
+name: ExternalDNS CI
+
+on:
+  pull_request:
+    paths:
+      - "terraform/modules/external-dns-irsa/**"
+      - "terraform/environments/**"
+      - "kubernetes/external-dns/**"
+      - ".github/workflows/external-dns-ci.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "terraform/modules/external-dns-irsa/**"
+      - "terraform/environments/**"
+      - "kubernetes/external-dns/**"
+      - ".github/workflows/external-dns-ci.yml"
+
+jobs:
+  terraform:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive terraform
+
+      - name: Validate dev
+        working-directory: terraform/environments/dev
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Validate staging
+        working-directory: terraform/environments/staging
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Validate prod
+        working-directory: terraform/environments/prod
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+  helm:
+    name: ExternalDNS Helm Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Add ExternalDNS Helm repository
+        run: |
+          helm repo add external-dns https://kubernetes-sigs.github.io/external-dns/
+          helm repo update
+
+      - name: Render ExternalDNS manifests
+        run: |
+          helm template external-dns external-dns/external-dns \
+            --namespace external-dns \
+            -f kubernetes/external-dns/values.yaml \
+            --set-string serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="arn:aws:iam::123456789012:role/external-dns-ci" \
+            > /tmp/external-dns-rendered.yaml
+
+      - name: Verify IRSA annotation
+        run: |
+          grep -q \
+            "eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/external-dns-ci" \
+            /tmp/external-dns-rendered.yaml
