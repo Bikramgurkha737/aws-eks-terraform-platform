@@ -1,0 +1,48 @@
+name: Sample App CI
+
+on:
+  pull_request:
+    paths:
+      - "kubernetes/sample-app/**"
+      - ".github/workflows/sample-app-ci.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "kubernetes/sample-app/**"
+      - ".github/workflows/sample-app-ci.yml"
+
+jobs:
+  validate:
+    name: Validate Sample App Manifests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate YAML syntax
+        run: |
+          ruby -e 'require "yaml"; Dir["kubernetes/sample-app/*.yaml"].each { |f| YAML.load_stream(File.read(f)); puts "#{f} valid" }'
+
+      - name: Verify required manifests
+        run: |
+          test -f kubernetes/sample-app/deployment.yaml
+          test -f kubernetes/sample-app/service.yaml
+          test -f kubernetes/sample-app/ingress.yaml
+          test -f kubernetes/sample-app/hpa.yaml
+          test -f kubernetes/sample-app/pdb.yaml
+
+      - name: Verify ALB Ingress configuration
+        run: |
+          grep -q 'ingressClassName: alb' kubernetes/sample-app/ingress.yaml
+          grep -q 'external-dns.alpha.kubernetes.io/hostname' kubernetes/sample-app/ingress.yaml
+          grep -q 'alb.ingress.kubernetes.io/certificate-arn' kubernetes/sample-app/ingress.yaml
+
+      - name: Verify workload reliability controls
+        run: |
+          grep -q 'readinessProbe:' kubernetes/sample-app/deployment.yaml
+          grep -q 'livenessProbe:' kubernetes/sample-app/deployment.yaml
+          grep -q 'kind: HorizontalPodAutoscaler' kubernetes/sample-app/hpa.yaml
+          grep -q 'kind: PodDisruptionBudget' kubernetes/sample-app/pdb.yaml
