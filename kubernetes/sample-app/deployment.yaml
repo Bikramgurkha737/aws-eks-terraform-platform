@@ -17,6 +17,9 @@ spec:
         app: sample-app
 
     spec:
+      serviceAccountName: sample-app
+      automountServiceAccountToken: false
+
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -55,8 +58,25 @@ spec:
 
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
+
+          volumeMounts:
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+            - name: tmp
+              mountPath: /tmp
+
+      volumes:
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
 
       terminationGracePeriodSeconds: 30

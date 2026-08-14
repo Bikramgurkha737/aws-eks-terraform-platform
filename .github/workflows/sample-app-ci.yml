@@ -46,3 +46,14 @@ jobs:
           grep -q 'livenessProbe:' kubernetes/sample-app/deployment.yaml
           grep -q 'kind: HorizontalPodAutoscaler' kubernetes/sample-app/hpa.yaml
           grep -q 'kind: PodDisruptionBudget' kubernetes/sample-app/pdb.yaml
+
+      - name: Verify Kubernetes security controls
+        run: |
+          grep -q 'serviceAccountName: sample-app' kubernetes/sample-app/deployment.yaml
+          grep -q 'automountServiceAccountToken: false' kubernetes/sample-app/deployment.yaml
+          grep -q 'runAsNonRoot: true' kubernetes/sample-app/deployment.yaml
+          grep -q 'type: RuntimeDefault' kubernetes/sample-app/deployment.yaml
+          grep -q 'allowPrivilegeEscalation: false' kubernetes/sample-app/deployment.yaml
+          grep -q 'readOnlyRootFilesystem: true' kubernetes/sample-app/deployment.yaml
+          grep -q 'kind: NetworkPolicy' kubernetes/sample-app/networkpolicy.yaml
+          grep -q 'kind: ServiceAccount' kubernetes/sample-app/serviceaccount.yaml
