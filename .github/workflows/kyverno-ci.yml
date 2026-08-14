@@ -29,11 +29,10 @@ jobs:
           ruby -e 'require "yaml"; Dir["kubernetes/kyverno/policies/*.yaml"].each { |f| YAML.load_stream(File.read(f)); puts "#{f} valid" }'
 
       - name: Install Kyverno CLI
-        run: |
-          curl -sL https://github.com/kyverno/kyverno/releases/latest/download/kyverno-cli_v1.15.0_linux_x86_64.tar.gz -o /tmp/kyverno.tar.gz
-          tar -xzf /tmp/kyverno.tar.gz -C /tmp
-          sudo mv /tmp/kyverno /usr/local/bin/kyverno
-          kyverno version
+        uses: kyverno/action-install-cli@v0.2.0
+
+      - name: Verify Kyverno CLI
+        run: kyverno version
 
       - name: Evaluate sample app against policies
         run: |
