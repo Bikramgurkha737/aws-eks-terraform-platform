@@ -118,6 +118,7 @@ aws-eks-terraform-platform/
 │       ├── opentelemetry-ci.yml
 │       ├── tracing-ci.yml
 │       ├── dashboard-ci.yml
+│       ├── alerting-ci.yml
 │       └── gitops-ci.yml
 ├── architecture/
 │   └── aws-eks-architecture.png
@@ -368,6 +369,54 @@ Prometheus collects Kubernetes and application metrics, Grafana provides visuali
 
 ---
 
+### Alerting & Incident Routing
+
+The monitoring platform includes severity-based alert routing and inhibition using Prometheus and Alertmanager.
+
+The alerting implementation includes:
+
+- Custom Prometheus alert rules
+- Critical, warning, and info severity levels
+- Default Alertmanager receiver
+- Critical severity receiver
+- Warning severity receiver
+- Info severity receiver
+- Severity-based Alertmanager routing
+- Alert grouping by namespace, alert name, and severity
+- Alert repeat interval configuration
+- Critical alert inhibition of lower-severity alerts
+- Warning alert inhibition of informational alerts
+- Application availability alerting
+- Deployment degradation alerting
+- Container restart monitoring
+- Alertmanager configuration validation
+- Dedicated Alerting CI workflow
+- Alerting CI validation on the `main` branch
+
+#### Alert Routing Flow
+
+```text
+Prometheus
+    │
+    ▼
+PrometheusRule
+    │
+    ▼
+Alertmanager
+    │
+    ├── Critical ──► Critical Receiver
+    │
+    ├── Warning  ──► Warning Receiver
+    │
+    ├── Info     ──► Info Receiver
+    │
+    └── Default  ──► Default Receiver
+```
+
+Alert inhibition prevents lower-severity notifications from creating unnecessary noise when a higher-severity alert for the same affected resource is already firing.
+
+---
+
 ## 🔄 GitOps
 
 Argo CD provides the GitOps deployment layer.
@@ -387,6 +436,7 @@ Environment Values
        ▼
  Kubernetes / EKS
 ```
+
 
 The Argo CD configuration enables:
 
@@ -568,6 +618,7 @@ The repository contains automated GitHub Actions workflows covering the platform
 | OpenTelemetry CI | OpenTelemetry Collector Helm rendering and Kubernetes schema validation |
 | Tracing CI | Grafana Tempo, OpenTelemetry Collector, Tempo Grafana data source, and integrated tracing validation |
 | Dashboard CI | Grafana dashboard JSON, ConfigMap, dashboard sidecar, and monitoring-stack validation |
+| Alerting CI | Prometheus alert rules, Alertmanager severity routing, inhibition rules, and monitoring-stack validation |
 | GitOps CI | Argo CD and environment-specific Helm configuration validation |
 
 ---
@@ -1071,12 +1122,28 @@ kubeconform -strict -summary /tmp/gitops-rendered.yaml
 - [x] Dedicated Dashboard CI workflow
 - [x] Dashboard CI validation on the `main` branch
 
-### Phase 12 — Platform Enhancements 🚧
+### Phase 12 — Alerting & Incident Routing ✅
+
+- [x] Custom Prometheus alert rules
+- [x] Critical, warning, and info severity classification
+- [x] Severity-based Alertmanager routing
+- [x] Default, critical, warning, and info receivers
+- [x] Alert grouping and repeat interval configuration
+- [x] Critical-to-lower-severity alert inhibition
+- [x] Warning-to-info alert inhibition
+- [x] Application availability alerting
+- [x] Deployment degradation alerting
+- [x] Container restart alerting
+- [x] Alertmanager configuration validation
+- [x] Dedicated Alerting CI workflow
+- [x] Alerting CI validation on the `main` branch
+
+### Phase 13 — Platform Enhancements 🚧
 
 - [ ] AWS Load Balancer Controller
 - [ ] ExternalDNS
 - [ ] External Secrets Operator
-- [ ] Alertmanager notification integrations
+- [ ] Alertmanager external notification integrations
 - [ ] Kubernetes security hardening
 - [ ] Automated Terraform Apply with approval controls
 
@@ -1129,6 +1196,8 @@ Grafana Dashboards as Code          ✅ Complete
 SRE Platform Overview Dashboard     ✅ Complete
 Grafana Dashboard Sidecar           ✅ Complete
 Dashboard CI                        ✅ Complete
+Alerting & Incident Routing         ✅ Complete
+Alerting CI                         ✅ Complete
 AWS OIDC Deployment                 ⏳ Pending AWS Account
 AWS-backed Terraform Plan           ⏳ Pending AWS Account
 Terraform Apply Automation          ⏳ Future Enhancement
@@ -1142,5 +1211,5 @@ Terraform Apply Automation          ⏳ Future Enhancement
 
 Site Reliability Engineer | DevOps Engineer
 
-GitHub:  
+GitHub:
 https://github.com/Bikramgurkha737
