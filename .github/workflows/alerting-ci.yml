@@ -67,13 +67,41 @@ jobs:
             -ignore-missing-schemas \
             /tmp/monitoring-rendered.yaml
 
+      - name: Decode Alertmanager Configuration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+          import re
+
+          rendered = Path("/tmp/monitoring-rendered.yaml").read_text()
+
+          match = re.search(
+              r'^\s*alertmanager\.yaml:\s*"([^"]+)"\s*$',
+              rendered,
+              re.MULTILINE
+          )
+
+          if not match:
+              raise SystemExit("alertmanager.yaml not found in rendered manifests")
+
+          decoded = base64.b64decode(match.group(1)).decode()
+          Path("/tmp/alertmanager.yaml").write_text(decoded)
+          PY
+
       - name: Verify Alertmanager Severity Routing
         run: |
-          grep -q 'severity = "critical"' /tmp/monitoring-rendered.yaml
-          grep -q 'severity = "warning"' /tmp/monitoring-rendered.yaml
-          grep -q 'severity = "info"' /tmp/monitoring-rendered.yaml
-          grep -q 'repeat_interval' /tmp/monitoring-rendered.yaml
-          grep -q 'inhibit_rules' /tmp/monitoring-rendered.yaml
+          grep -q 'receiver: critical' /tmp/alertmanager.yaml
+          grep -q 'receiver: warning' /tmp/alertmanager.yaml
+          grep -q 'receiver: info' /tmp/alertmanager.yaml
+          grep -q 'receiver: default' /tmp/alertmanager.yaml
+          grep -q 'severity = "critical"' /tmp/alertmanager.yaml
+          grep -q 'severity = "warning"' /tmp/alertmanager.yaml
+          grep -q 'severity = "info"' /tmp/alertmanager.yaml
+          grep -q 'repeat_interval: 4h' /tmp/alertmanager.yaml
+          grep -q 'inhibit_rules:' /tmp/alertmanager.yaml
+          grep -q 'source_matchers:' /tmp/alertmanager.yaml
+          grep -q 'target_matchers:' /tmp/alertmanager.yaml
 
       - name: Verify Custom Alert Rules
         run: |
