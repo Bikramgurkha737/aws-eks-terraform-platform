@@ -115,8 +115,10 @@ aws-eks-terraform-platform/
 │       ├── helm-ci.yml
 │       ├── monitoring-ci.yml
 │       ├── logging-ci.yml
+│       ├── opentelemetry-ci.yml
+│       ├── tracing-ci.yml
+│       ├── dashboard-ci.yml
 │       └── gitops-ci.yml
-│
 ├── architecture/
 │   └── aws-eks-architecture.png
 │
@@ -187,11 +189,17 @@ aws-eks-terraform-platform/
 │   │   └── values.yaml
 │   ├── alloy/
 │   │   └── values.yaml
+│   ├── opentelemetry/
+│   │   └── values.yaml
+│   ├── tempo/
+│   │   └── values.yaml
+│   ├── dashboards/
+│   │   ├── sre-platform-overview.json
+│   │   └── sre-platform-overview-configmap.yaml
 │   ├── rules/
 │   │   └── sre-demo-rules.yaml
 │   └── servicemonitors/
 │       └── sre-demo-servicemonitor.yaml
-│
 ├── gitops/
 │   ├── argocd/
 │   │   └── sre-demo-application.yaml
@@ -487,6 +495,9 @@ This allows the security architecture to be developed and validated independentl
 | Centralized Logging | Grafana Loki |
 | Log Collection | Grafana Alloy |
 | Log Querying | LogQL |
+| Distributed Tracing | OpenTelemetry / Grafana Tempo |
+| Telemetry Protocol | OTLP gRPC / HTTP |
+| Dashboards as Code | Grafana JSON / Kubernetes ConfigMap |
 | Alerting | Alertmanager |
 | CI/CD | GitHub Actions |
 | Cloud Authentication | GitHub Actions OIDC / AWS STS |
@@ -554,6 +565,9 @@ The repository contains automated GitHub Actions workflows covering the platform
 | Helm CI | Helm linting, template rendering, and schema validation |
 | Monitoring CI | Prometheus/Grafana stack rendering and configuration validation |
 | Logging CI | Loki, Grafana Alloy, and monitoring-stack Helm rendering with Kubeconform validation |
+| OpenTelemetry CI | OpenTelemetry Collector Helm rendering and Kubernetes schema validation |
+| Tracing CI | Grafana Tempo, OpenTelemetry Collector, Tempo Grafana data source, and integrated tracing validation |
+| Dashboard CI | Grafana dashboard JSON, ConfigMap, dashboard sidecar, and monitoring-stack validation |
 | GitOps CI | Argo CD and environment-specific Helm configuration validation |
 
 ---
@@ -1040,13 +1054,30 @@ kubeconform -strict -summary /tmp/gitops-rendered.yaml
 - [x] Dedicated Tracing CI workflow
 - [x] Tracing CI validation on the `main` branch
 
-### Phase 11 — Platform Enhancements 🚧
+### Phase 11 — Grafana Dashboards as Code ✅
+
+- [x] SRE Platform Overview dashboard
+- [x] Kubernetes CPU usage panel
+- [x] Kubernetes memory usage panel
+- [x] Running pods panel
+- [x] Pod restart monitoring
+- [x] Loki log visualization panel
+- [x] Dashboard JSON stored in Git
+- [x] Kubernetes ConfigMap dashboard provisioning
+- [x] Grafana dashboard sidecar configuration
+- [x] Dashboard JSON validation
+- [x] Dashboard ConfigMap Kubeconform validation
+- [x] Integrated monitoring-stack validation
+- [x] Dedicated Dashboard CI workflow
+- [x] Dashboard CI validation on the `main` branch
+
+### Phase 12 — Platform Enhancements 🚧
 
 - [ ] AWS Load Balancer Controller
 - [ ] ExternalDNS
 - [ ] External Secrets Operator
-- [ ] Custom Grafana dashboards
 - [ ] Alertmanager notification integrations
+- [ ] Kubernetes security hardening
 - [ ] Automated Terraform Apply with approval controls
 
 ---
@@ -1094,6 +1125,10 @@ Argo CD / GitOps                    ✅ Complete
 Terraform PR Validation             ✅ Complete
 GitHub OIDC Terraform Code          ✅ Complete
 GitHub OIDC CI Validation           ✅ Complete
+Grafana Dashboards as Code          ✅ Complete
+SRE Platform Overview Dashboard     ✅ Complete
+Grafana Dashboard Sidecar           ✅ Complete
+Dashboard CI                        ✅ Complete
 AWS OIDC Deployment                 ⏳ Pending AWS Account
 AWS-backed Terraform Plan           ⏳ Pending AWS Account
 Terraform Apply Automation          ⏳ Future Enhancement
