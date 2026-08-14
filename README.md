@@ -29,6 +29,13 @@ The platform combines Infrastructure as Code, Kubernetes workload management, He
 - Horizontal Pod Autoscaling
 - PodDisruptionBudget
 - Kubernetes Ingress
+- AWS Load Balancer Controller with IRSA
+- ExternalDNS with Amazon Route53 and IRSA
+- cert-manager with Route53 DNS01 and IRSA
+- Least-privilege Route53 hosted-zone permissions
+- AWS ALB Ingress
+- ACM HTTPS termination
+- Production-style sample application
 - Reusable Helm chart
 - Prometheus monitoring
 - Grafana visualization
@@ -65,40 +72,79 @@ The platform combines Infrastructure as Code, Kubernetes workload management, He
 ### Architecture Flow
 
 ```text
-GitHub
-   │
-   ▼
-GitHub Actions
-   │
-   ├── Terraform CI
-   ├── Terraform PR Validation
-   └── GitHub OIDC Architecture
-   │
-   ▼
-Terraform
-   │
-   ├── Development
-   ├── Staging
-   └── Production
-   │
-   ▼
-AWS VPC
-   │
-   ▼
-Amazon EKS
-   │
-   ▼
-Managed Node Groups
-   │
-   ▼
-Kubernetes Workloads
-   │
-   ├── Helm
-   ├── Argo CD / GitOps
-   └── Prometheus / Grafana
+                         GitHub
+                            │
+                            ▼
+                     GitHub Actions
+                            │
+             ┌──────────────┼──────────────┐
+             │              │              │
+             ▼              ▼              ▼
+        Terraform CI   Kubernetes CI   Component CI
+             │
+             ▼
+          Terraform
+             │
+      ┌──────┼──────┐
+      ▼      ▼      ▼
+     Dev   Staging  Prod
+             │
+             ▼
+          AWS VPC
+             │
+             ▼
+         Amazon EKS
+             │
+    ┌────────┼───────────┬──────────────┐
+    │        │           │              │
+    ▼        ▼           ▼              ▼
+ALB Controller  ExternalDNS  cert-manager  Observability
+    │              │             │             │
+    │              ▼             ▼             ├── Prometheus
+    │           Route53      Route53 DNS01      ├── Grafana
+    │                                          ├── Loki
+    ▼                                          └── Tempo
+AWS ALB
+    │
+    ├── ACM TLS
+    │
+    ▼
+Sample Application
+    │
+    ├── Deployment
+    ├── Service
+    ├── HPA
+    └── PodDisruptionBudget
 ```
 
 The architecture separates infrastructure provisioning, application deployment, GitOps delivery, observability, CI/CD validation, and cloud authentication concerns.
+
+### Traffic, DNS & TLS Flow
+
+For public application traffic, the AWS Load Balancer Controller provisions an internet-facing Application Load Balancer from the Kubernetes Ingress configuration. ExternalDNS watches the Ingress hostname and manages the corresponding Route53 DNS record.
+
+HTTPS termination for the sample ALB-based application uses an AWS Certificate Manager certificate referenced by the Ingress. cert-manager remains available as a separate platform capability for workloads that require Kubernetes-managed TLS certificates and Route53 DNS01 ACME validation.
+
+```text
+Client
+  │
+  ▼
+Route53
+  │
+  ▼
+AWS Application Load Balancer
+  │
+  ├── ACM Certificate / HTTPS
+  │
+  ▼
+Kubernetes Service
+  │
+  ▼
+Sample Application Pods
+
+ExternalDNS ─────► Route53 DNS records
+cert-manager ────► Route53 DNS01 challenges
+```
 
 ---
 
@@ -119,6 +165,10 @@ aws-eks-terraform-platform/
 │       ├── tracing-ci.yml
 │       ├── dashboard-ci.yml
 │       ├── alerting-ci.yml
+│       ├── aws-load-balancer-controller-ci.yml
+│       ├── external-dns-ci.yml
+│       ├── cert-manager-ci.yml
+│       ├── sample-app-ci.yml
 │       └── gitops-ci.yml
 ├── architecture/
 │   └── aws-eks-architecture.png
@@ -158,11 +208,27 @@ aws-eks-terraform-platform/
 │   │       └── variables.tf
 │   │
 │   └── modules/
+│       ├── aws-load-balancer-controller-irsa/
+│       ├── cert-manager-irsa/
 │       ├── eks/
+│       ├── external-dns-irsa/
 │       ├── iam/
 │       └── vpc/
 │
 ├── kubernetes/
+│   ├── aws-load-balancer-controller/
+│   │   └── values.yaml
+│   ├── cert-manager/
+│   │   ├── cluster-issuer.yaml
+│   │   └── values.yaml
+│   ├── external-dns/
+│   │   └── values.yaml
+│   ├── sample-app/
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   ├── ingress.yaml
+│   │   ├── hpa.yaml
+│   │   └── pdb.yaml
 │   ├── namespace.yaml
 │   ├── configmap.yaml
 │   ├── deployment.yaml
@@ -233,6 +299,15 @@ aws-eks-terraform-platform/
 - EKS Managed Node Groups
 - Private EKS API access
 - AWS KMS encryption for Kubernetes secrets
+- AWS Load Balancer Controller with IRSA
+- ExternalDNS integration with Amazon Route53
+- cert-manager with Route53 DNS01 support
+- IAM Roles for Service Accounts (IRSA)
+- Least-privilege Route53 hosted-zone access
+- Environment-specific Route53 zone configuration
+- AWS ALB Ingress integration
+- ACM-based HTTPS termination
+- Automated DNS record management through ExternalDNS
 
 ---
 
