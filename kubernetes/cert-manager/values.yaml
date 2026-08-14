@@ -1,0 +1,34 @@
+crds:
+  enabled: true
+
+serviceAccount:
+  create: true
+  name: cert-manager
+  annotations:
+    eks.amazonaws.com/role-arn: CERT_MANAGER_IAM_ROLE_ARN
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+webhook:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+cainjector:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi

@@ -1,0 +1,85 @@
+name: cert-manager CI
+
+on:
+  pull_request:
+    paths:
+      - "terraform/modules/cert-manager-irsa/**"
+      - "terraform/environments/**"
+      - "kubernetes/cert-manager/**"
+      - ".github/workflows/cert-manager-ci.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "terraform/modules/cert-manager-irsa/**"
+      - "terraform/environments/**"
+      - "kubernetes/cert-manager/**"
+      - ".github/workflows/cert-manager-ci.yml"
+
+jobs:
+  terraform:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive terraform
+
+      - name: Validate dev
+        working-directory: terraform/environments/dev
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Validate staging
+        working-directory: terraform/environments/staging
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Validate prod
+        working-directory: terraform/environments/prod
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+  helm:
+    name: cert-manager Helm Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Add Jetstack Helm repository
+        run: |
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo update
+
+      - name: Render cert-manager manifests
+        run: |
+          helm template cert-manager jetstack/cert-manager \
+            --namespace cert-manager \
+            -f kubernetes/cert-manager/values.yaml \
+            --set-string serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="arn:aws:iam::123456789012:role/cert-manager-ci" \
+            > /tmp/cert-manager-rendered.yaml
+
+      - name: Verify IRSA annotation
+        run: |
+          grep -q \
+            'eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/cert-manager-ci"' \
+            /tmp/cert-manager-rendered.yaml
+
+      - name: Validate ClusterIssuer YAML
+        run: |
+          ruby -e 'require "yaml"; YAML.load_file("kubernetes/cert-manager/cluster-issuer.yaml"); puts "ClusterIssuer YAML valid"'
