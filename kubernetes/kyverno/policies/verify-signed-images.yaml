@@ -1,0 +1,31 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+
+metadata:
+  name: verify-signed-sample-app-images
+
+spec:
+  validationFailureAction: Enforce
+  background: false
+  webhookTimeoutSeconds: 30
+  failurePolicy: Fail
+
+  rules:
+    - name: verify-sample-app-image-signature
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/bikramgurkha737/aws-eks-terraform-platform/sample-app*"
+
+          attestors:
+            - entries:
+                - keyless:
+                    subject: "https://github.com/Bikramgurkha737/aws-eks-terraform-platform/.github/workflows/container-build-sign.yml@refs/heads/main"
+                    issuer: "https://token.actions.githubusercontent.com"
+                    rekor:
+                      url: https://rekor.sigstore.dev
