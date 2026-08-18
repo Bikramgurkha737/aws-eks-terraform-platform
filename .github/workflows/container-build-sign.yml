@@ -17,7 +17,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/sample-app
+  IMAGE_NAME: bikramgurkha737/aws-eks-terraform-platform/sample-app
 
 jobs:
   build-sign:
