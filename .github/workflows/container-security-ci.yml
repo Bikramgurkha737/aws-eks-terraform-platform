@@ -1,0 +1,54 @@
+name: Container Security CI
+
+on:
+  pull_request:
+    paths:
+      - "kubernetes/sample-app/**"
+      - ".github/workflows/container-security-ci.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "kubernetes/sample-app/**"
+      - ".github/workflows/container-security-ci.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  container-security:
+    name: Container Image Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Identify sample application image
+        id: image
+        run: |
+          IMAGE=$(awk '/image:/ {print $2; exit}' kubernetes/sample-app/deployment.yaml)
+
+          echo "Container image: ${IMAGE}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+
+      - name: Scan container image for vulnerabilities
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          image-ref: ${{ steps.image.outputs.image }}
+          format: table
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ steps.image.outputs.image }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+          artifact-name: sample-app-sbom
