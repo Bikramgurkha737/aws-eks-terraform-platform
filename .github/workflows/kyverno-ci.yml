@@ -34,7 +34,11 @@ jobs:
       - name: Verify Kyverno CLI
         run: kyverno version
 
-      - name: Evaluate sample app against policies
+      - name: Evaluate sample app against admission policies
         run: |
-          kyverno apply kubernetes/kyverno/policies \
+          kyverno apply \
+            kubernetes/kyverno/policies/disallow-privilege-escalation.yaml \
+            kubernetes/kyverno/policies/require-run-as-non-root.yaml \
+            kubernetes/kyverno/policies/require-resource-limits.yaml \
+            kubernetes/kyverno/policies/require-read-only-root-filesystem.yaml \
             --resource kubernetes/sample-app/deployment.yaml
