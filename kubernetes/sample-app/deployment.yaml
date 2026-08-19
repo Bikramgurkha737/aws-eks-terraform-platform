@@ -27,7 +27,7 @@ spec:
 
       containers:
         - name: sample-app
-          image: nginxinc/nginx-unprivileged@sha256:f972e5322b9797dc2a6b830030094426437b1ae7032e4644496395336ac6fdac
+          image: ghcr.io/bikramgurkha737/aws-eks-terraform-platform/sample-app@sha256:7d2fc2bdbf0f98b0436db2ecb224241fef1b50f6b28eba7bc9e90587e6720fb5
 
           ports:
             - name: http
