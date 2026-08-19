@@ -1260,6 +1260,24 @@ kubeconform -strict -summary /tmp/gitops-rendered.yaml
 - [x] Rekor transparency-log verification configuration
 - [x] Container Security CI
 - [x] Supply-chain security validation on the `main` branch
+
+
+### Phase 15 — Build Provenance & Artifact Attestations ✅
+
+- [x] SLSA build provenance attestation
+- [x] SPDX SBOM attestation
+- [x] GitHub Artifact Attestations
+- [x] OCI registry attestation publishing
+- [x] Sigstore-backed attestation signing
+- [x] Rekor transparency-log integration
+- [x] Provenance verification with GitHub CLI
+- [x] SPDX SBOM attestation verification
+- [x] Repository identity validation
+- [x] GitHub Actions workflow identity validation
+- [x] Immutable GHCR digest attestation verification
+- [x] Attestation workflow validation on the `main` branch
+
+
 ---
 
 ## 🎯 Project Goals
@@ -1329,20 +1347,29 @@ Kyverno CI                               ✅ Complete
 External Secrets Operator                ✅ Implemented & CI Validated
 AWS Secrets Manager IRSA                 ✅ Implemented & CI Validated
 External Secrets CI                      ✅ Complete
-Container Vulnerability Scanning          ✅ Complete
-Container Security CI                     ✅ Complete
-SPDX SBOM Generation                      ✅ Complete
-Container Image Digest Pinning            ✅ Complete
-Docker Base Image Digest Pinning          ✅ Complete
-GitHub Container Registry (GHCR)          ✅ Complete
-GHCR Container Build / Push               ✅ Complete
-Cosign Keyless Image Signing              ✅ Complete
-GitHub OIDC Container Signing             ✅ Complete
-Signed GHCR Sample Application            ✅ Complete
-Kyverno Image Signature Verification      ✅ Complete
-Sigstore / Fulcio Verification            ✅ Configured
-Rekor Transparency Log Verification       ✅ Configured
-Container Supply-Chain Security           ✅ Complete
+Container Vulnerability Scanning         ✅ Complete
+Container Security CI                    ✅ Complete
+SPDX SBOM Generation                     ✅ Complete
+Container Image Digest Pinning           ✅ Complete
+Docker Base Image Digest Pinning         ✅ Complete
+GitHub Container Registry (GHCR)         ✅ Complete
+GHCR Container Build / Push              ✅ Complete
+Cosign Keyless Image Signing             ✅ Complete
+GitHub OIDC Container Signing            ✅ Complete
+Signed GHCR Sample Application           ✅ Complete
+Kyverno Image Signature Verification     ✅ Complete
+Sigstore / Fulcio Verification           ✅ Configured
+Rekor Transparency Log Verification      ✅ Configured
+Container Supply-Chain Security          ✅ Complete
+SLSA Build Provenance                    ✅ Complete
+GitHub Artifact Attestations             ✅ Complete
+SPDX SBOM Attestation                    ✅ Complete
+OCI Attestation Publishing               ✅ Complete
+Sigstore Attestation Signing             ✅ Complete
+Rekor Attestation Logging                ✅ Complete
+Provenance Verification                  ✅ Complete
+SBOM Attestation Verification            ✅ Complete
+Build Provenance & Attestations          ✅ Complete
 AWS OIDC Deployment                      ⏳ Pending AWS Account
 Real Route53 Hosted Zones                ⏳ Pending AWS Account
 Real ACM Certificate                     ⏳ Pending AWS Account
