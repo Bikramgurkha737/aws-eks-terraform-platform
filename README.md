@@ -8,7 +8,7 @@
 
 This project demonstrates the design and implementation of a modular AWS Kubernetes platform following DevOps and Site Reliability Engineering (SRE) practices.
 
-The platform combines Infrastructure as Code, Kubernetes workload management, Helm packaging, observability, GitOps, security scanning, multi-environment infrastructure, secure Terraform state management, GitHub OIDC authentication architecture, and automated CI/CD validation.
+The platform combines Infrastructure as Code, Kubernetes workload management, Helm packaging, observability, GitOps, container and software supply-chain security, multi-environment infrastructure, secure Terraform state management, GitHub OIDC authentication architecture, and automated CI/CD validation.
 
 ### Current Implementation
 
@@ -676,6 +676,25 @@ The project incorporates infrastructure, Terraform-state, CI/CD, Kubernetes, and
 - PodDisruptionBudget
 - CI validation before infrastructure changes are merged
 
+### Container & Software Supply-Chain Security
+
+The platform implements container and software supply-chain controls across image build, validation, publishing, signing, and Kubernetes admission.
+
+- Container vulnerability scanning with Trivy
+- HIGH and CRITICAL vulnerability CI enforcement
+- SPDX Software Bill of Materials (SBOM) generation
+- Immutable container image digest pinning
+- Immutable Docker base-image digest pinning
+- Container image publishing to GitHub Container Registry (GHCR)
+- GitHub Actions-based container build and publishing
+- Keyless container image signing with Cosign
+- GitHub OIDC identity for keyless signing
+- Sigstore Fulcio certificate-based identity verification
+- Rekor transparency-log integration
+- Kubernetes deployment using a signed GHCR image digest
+- Kyverno policy for signed-image verification
+- Separate static Kyverno CI validation from runtime Sigstore verification
+
 ---
 
 ## ✅ CI/CD & Validation
@@ -1225,6 +1244,22 @@ kubeconform -strict -summary /tmp/gitops-rendered.yaml
 - [ ] Alertmanager external notification integrations
 - [ ] Automated Terraform Apply with approval controls
 
+### Phase 14 — Container & Software Supply-Chain Security ✅
+
+- [x] Container image vulnerability scanning with Trivy
+- [x] HIGH and CRITICAL vulnerability CI enforcement
+- [x] SPDX SBOM generation
+- [x] Immutable Kubernetes image digest pinning
+- [x] Immutable Docker base-image digest pinning
+- [x] GitHub Container Registry (GHCR) image publishing
+- [x] GitHub Actions container build pipeline
+- [x] GitHub OIDC-enabled keyless Cosign signing
+- [x] Signed container image deployment by digest
+- [x] Kyverno signed-image verification policy
+- [x] Sigstore Fulcio identity verification configuration
+- [x] Rekor transparency-log verification configuration
+- [x] Container Security CI
+- [x] Supply-chain security validation on the `main` branch
 ---
 
 ## 🎯 Project Goals
@@ -1294,6 +1329,20 @@ Kyverno CI                               ✅ Complete
 External Secrets Operator                ✅ Implemented & CI Validated
 AWS Secrets Manager IRSA                 ✅ Implemented & CI Validated
 External Secrets CI                      ✅ Complete
+Container Vulnerability Scanning          ✅ Complete
+Container Security CI                     ✅ Complete
+SPDX SBOM Generation                      ✅ Complete
+Container Image Digest Pinning            ✅ Complete
+Docker Base Image Digest Pinning          ✅ Complete
+GitHub Container Registry (GHCR)          ✅ Complete
+GHCR Container Build / Push               ✅ Complete
+Cosign Keyless Image Signing              ✅ Complete
+GitHub OIDC Container Signing             ✅ Complete
+Signed GHCR Sample Application            ✅ Complete
+Kyverno Image Signature Verification      ✅ Complete
+Sigstore / Fulcio Verification            ✅ Configured
+Rekor Transparency Log Verification       ✅ Configured
+Container Supply-Chain Security           ✅ Complete
 AWS OIDC Deployment                      ⏳ Pending AWS Account
 Real Route53 Hosted Zones                ⏳ Pending AWS Account
 Real ACM Certificate                     ⏳ Pending AWS Account
