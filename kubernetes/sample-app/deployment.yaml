@@ -27,7 +27,7 @@ spec:
 
       containers:
         - name: sample-app
-          image: ghcr.io/bikramgurkha737/aws-eks-terraform-platform/sample-app@sha256:7d2fc2bdbf0f98b0436db2ecb224241fef1b50f6b28eba7bc9e90587e6720fb5
+          image: ghcr.io/bikramgurkha737/aws-eks-terraform-platform/sample-app@sha256:9642b5257b50f05680c86a1f5fde9609ba4e5cd019c8de70730356727764c8a1
 
           ports:
             - name: http

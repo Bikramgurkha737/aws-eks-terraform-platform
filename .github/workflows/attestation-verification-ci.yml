@@ -1,0 +1,54 @@
+name: Attestation Verification CI
+
+on:
+  pull_request:
+    paths:
+      - "kubernetes/sample-app/**"
+      - ".github/workflows/attestation-verification-ci.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "kubernetes/sample-app/**"
+      - ".github/workflows/attestation-verification-ci.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  attestations: read
+  packages: read
+
+jobs:
+  verify-attestations:
+    name: Verify Image Provenance and SBOM
+    runs-on: ubuntu-latest
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract deployed image
+        id: image
+        run: |
+          IMAGE=$(awk '/image:/ {print $2; exit}' kubernetes/sample-app/deployment.yaml)
+
+          echo "Deployed image: ${IMAGE}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify SLSA build provenance
+        run: |
+          gh attestation verify \
+            "oci://${{ steps.image.outputs.image }}" \
+            --repo "${{ github.repository }}"
+
+      - name: Verify SPDX SBOM attestation
+        run: |
+          gh attestation verify \
+            "oci://${{ steps.image.outputs.image }}" \
+            --repo "${{ github.repository }}" \
+            --predicate-type https://spdx.dev/Document
